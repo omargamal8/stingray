@@ -1,4 +1,4 @@
-
+from __future__ import division, absolute_import, print_function
 
 import numpy as np
 import scipy
@@ -569,37 +569,44 @@ class AveragedCrossspectrum(Crossspectrum):
                                     dt=lc1.dt)
     
         def _create_segments_spectrum(start_inds, end_inds):
-                cs_all = []
-                nphots1_all = []
-                nphots2_all = []
+            cs_all = []
+            nphots1_all = []
+            nphots2_all = []
 
-                for start_ind, end_ind in zip(start_inds, end_inds):
-                    time_1 = lc1.time[start_ind:end_ind]
-                    counts_1 = lc1.counts[start_ind:end_ind]
-                    counts_1_err = lc1.counts_err[start_ind:end_ind]
-                    time_2 = lc2.time[start_ind:end_ind]
-                    counts_2 = lc2.counts[start_ind:end_ind]
-                    counts_2_err = lc2.counts_err[start_ind:end_ind]
-                    lc1_seg = Lightcurve(time_1, counts_1, err=counts_1_err,
-                                         err_dist=lc1.err_dist,
-                                         gti=[[time_1[0] - lc1.dt/2,
-                                               time_1[-1] + lc1.dt / 2]],
-                                         dt=lc1.dt)
-                    lc2_seg = Lightcurve(time_2, counts_2, err=counts_2_err,
-                                         err_dist=lc2.err_dist,
-                                         gti=[[time_2[0] - lc2.dt/2,
-                                               time_2[-1] + lc2.dt / 2]],
-                                         dt=lc2.dt)
-                    cs_seg = Crossspectrum(lc1_seg, lc2_seg, norm=self.norm)
-                    cs_all.append(cs_seg)
-                    nphots1_all.append(np.sum(lc1_seg.counts))
-                    nphots2_all.append(np.sum(lc2_seg.counts))
-                return cs_all, nphots1_all, nphots2_all
+            for start_ind, end_ind in zip(start_inds, end_inds):
+                time_1 = lc1.time[start_ind:end_ind]
+                counts_1 = lc1.counts[start_ind:end_ind]
+                counts_1_err = lc1.counts_err[start_ind:end_ind]
+                time_2 = lc2.time[start_ind:end_ind]
+                counts_2 = lc2.counts[start_ind:end_ind]
+                counts_2_err = lc2.counts_err[start_ind:end_ind]
+                lc1_seg = Lightcurve(time_1, counts_1, err=counts_1_err,
+                                     err_dist=lc1.err_dist,
+                                     gti=[[time_1[0] - lc1.dt/2,
+                                           time_1[-1] + lc1.dt / 2]],
+                                     dt=lc1.dt)
+                lc2_seg = Lightcurve(time_2, counts_2, err=counts_2_err,
+                                     err_dist=lc2.err_dist,
+                                     gti=[[time_2[0] - lc2.dt/2,
+                                           time_2[-1] + lc2.dt / 2]],
+                                     dt=lc2.dt)
+                cs_seg = Crossspectrum(lc1_seg, lc2_seg, norm=self.norm)
+                cs_all.append(cs_seg)
+                nphots1_all.append(np.sum(lc1_seg.counts))
+                nphots2_all.append(np.sum(lc2_seg.counts))
+            return cs_all, nphots1_all, nphots2_all
 
+        def _append(arr):
+            concatenation = []
+            for array in arr:
+                concatenation += array
+            return concatenation
 
-        cs_all, nphotos1_all, nphotos2_all = execute_parallel(_create_segments_spectrum,start_inds, end_inds)
-        
-        return cs_all, nphotos1_all, nphotos2_all
+        cs_all, nphots1_all, nphots2_all = \
+        stingray_parallel.execute_parallel(_create_segments_spectrum,
+                                        [_append,_append,_append], start_inds, end_inds)
+
+        return cs_all, nphots1_all, nphots2_all
 
 
     def _make_crossspectrum(self, lc1, lc2):
