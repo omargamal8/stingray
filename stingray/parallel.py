@@ -14,7 +14,7 @@ def execute_parallel(work, list_of_operations, *args):
 	This function should be called when there are lines of code that
 	should be executed in parallel.
 	These lines of code should be wrapped in a function and passed here as the "work" argument.
-	*args are the arguments that will be passed to the work function should and they should consist of slicable objects.
+	*args are the arguments that will be passed to the work function and they should consist of slicable objects.
 
 	What execute_parallel should do is keep calling the execute_functions found in prefered_parallel_libraries one by one
 	with the work function and its *args. If the execute_function called returns the "uninstalled" global variable, it will

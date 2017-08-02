@@ -603,7 +603,7 @@ class AveragedCrossspectrum(Crossspectrum):
             return concatenation
 
         cs_all, nphots1_all, nphots2_all = \
-        stingray_parallel.execute_parallel(_create_segments_spectrum,
+                                        execute_parallel(_create_segments_spectrum,
                                         [_append,_append,_append], start_inds, end_inds)
 
         return cs_all, nphots1_all, nphots2_all
