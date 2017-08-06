@@ -567,7 +567,7 @@ class AveragedCrossspectrum(Crossspectrum):
         start_inds, end_inds = \
                 bin_intervals_from_gtis(self.gti, segment_size, lc1.time,
                                     dt=lc1.dt)
-    
+        _norm = self.norm
         def _create_segments_spectrum(start_inds, end_inds):
             cs_all = []
             nphots1_all = []
@@ -590,7 +590,7 @@ class AveragedCrossspectrum(Crossspectrum):
                                      gti=[[time_2[0] - lc2.dt/2,
                                            time_2[-1] + lc2.dt / 2]],
                                      dt=lc2.dt)
-                cs_seg = Crossspectrum(lc1_seg, lc2_seg, norm=self.norm)
+                cs_seg = Crossspectrum(lc1_seg, lc2_seg, norm=_norm)
                 cs_all.append(cs_seg)
                 nphots1_all.append(np.sum(lc1_seg.counts))
                 nphots2_all.append(np.sum(lc2_seg.counts))
@@ -603,7 +603,7 @@ class AveragedCrossspectrum(Crossspectrum):
             return concatenation
 
         cs_all, nphots1_all, nphots2_all = \
-                                        execute_parallel(_create_segments_spectrum,
+        execute_parallel(_create_segments_spectrum,
                                         [_append,_append,_append], start_inds, end_inds)
 
         return cs_all, nphots1_all, nphots2_all

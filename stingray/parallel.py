@@ -2,12 +2,6 @@ from stingray.utils import simon
 import numpy as np
 
 
-def _post_add (arr):
-	sum = arr[0]
-	for element in arr[1:]:
-		sum += element
-	return sum
-
 def execute_parallel(work, list_of_operations, *args):
 	"""
 	This is the starting point of executing in parallel:
@@ -44,6 +38,7 @@ will be created. Run the work function and then combine their returned values an
 """
 
 def _execute_dask(work, list_of_operations, *args):
+	# return uninstalled
 	"""
 	This function works as follow:
 	1- Check how many cores are availble
@@ -109,12 +104,15 @@ def _execute_dask(work, list_of_operations, *args):
             #slice each argument
             process_args = []
             for argument in args:
-            	process_args.append( argument[starting_index:ending_index] )
+                sliced_argument = argument[starting_index:ending_index]
+                process_args.append( sliced_argument )
 
             if(ending_index > starting_index):
             	tasks.append(delayed(work)(*process_args))
 
 	list_of_results = list( compute(*tasks, get = dask.multiprocessing.get) )
+	# list_of_results = delayed(list)(tasks)
+	# list_of_results = list_of_results.compute(get = dask.multiprocessing.get)
 	return _post_processing(list_of_results, list_of_operations)
 
 
@@ -155,6 +153,13 @@ def _post_processing(listOfResults,list_of_operations):
 
 	return tuple(final_values) if len(final_values) != 1 else final_values[0]
 
+def _post_add (arr):
+	sum = arr[0]
+	for element in arr[1:]:
+		sum += element
+	return sum
+
 prefered_parallel_libraries = {"dask":_execute_dask}
 
 uninstalled = object()
+
