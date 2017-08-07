@@ -50,12 +50,12 @@ matrix:
         - python: 2.7
           env: PIP_DEPENDENCIES='git+https://git@github.com/nanograv/pint.git jplephem emcee statsmodels corner' SETUP_CMD='test --remote-data'
 
-        #Try without importing h5py but importing numba
+        #Try without importing h5py but importing numba as wel ass dask
         - python: 2.7
-          env: CONDA_DEPENDENCIES='Cython numpy scipy nose matplotlib numba'
+          env: CONDA_DEPENDENCIES='Cython numpy scipy nose matplotlib numba dask'
 
         - python: 3.5
-          env: CONDA_DEPENDENCIES='Cython numpy scipy nose matplotlib numba' SETUP_CMD='test --coverage'
+          env: CONDA_DEPENDENCIES='Cython numpy scipy nose matplotlib numba dask' SETUP_CMD='test --coverage'
 
         # Try without using corner
         - python: 3.5
