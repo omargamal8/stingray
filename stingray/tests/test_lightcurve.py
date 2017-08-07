@@ -33,7 +33,7 @@ class TestLightcurve(object):
         Demonstrate that we can create a trivial Lightcurve object.
         """
         lc = Lightcurve(self.times, self.counts)
-	
+    
     def test_irregular_time_warning(self):
         """
         Check if inputting an irregularly spaced time iterable throws out
@@ -390,6 +390,30 @@ class TestLightcurve(object):
         assert len(lc.counts) == len(lc.time) == 6
         assert np.all(lc.counts == np.array([2, 2, 3, 3, 4, 4]))
 
+    def test_join_different_err_dist_disjoint_times(self):
+        _times = [5 , 6, 7, 8]
+        _counts =[2, 2, 2, 2]
+
+        lc1 = Lightcurve(self.times, self.counts, err_dist = "poisson")
+        lc2 = Lightcurve(_times, _counts, err_dist = "gauss")
+
+        lc3 = lc1.join(lc2)
+
+        assert np.all(lc3.counts_err[:len(self.times)] == lc1.counts_err)
+        assert np.all(lc3.counts_err[len(self.times):] == np.zeros_like(lc2.counts))
+
+    def test_join_different_err_dist_overlapping_times(self):
+        _times = [3, 4, 5, 6]
+        _counts = [4, 4, 4, 4]
+
+        lc1 = Lightcurve(self.times, self.counts, err_dist = "poisson")
+        lc2 = Lightcurve(_times, _counts, err_dist = "gauss")
+        
+        with warnings.catch_warnings(record=True) as w:
+            lc3 = lc1.join(lc2)
+            assert "We are setting the errors to zero." in str(w[1].message)
+            assert np.all(lc3.counts_err == np.zeros_like(lc3.time))
+
     def test_truncate_by_index(self):
         lc = Lightcurve(self.times, self.counts, gti=self.gti)
 
@@ -614,3 +638,8 @@ class TestLightcurveRebin(object):
         lc = Lightcurve(times, counts, gti=gti)
         baseline = lc.baseline(10000, 0.01)
         assert np.all(lc.counts - baseline < 1)
+
+    def test_change_mjdref(self):
+        lc_new = self.lc.change_mjdref(57000)
+        assert lc_new.mjdref == 57000
+    
