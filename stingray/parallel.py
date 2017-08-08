@@ -1,8 +1,9 @@
 from stingray.utils import simon
 import numpy as np
+from numba import jit
 
 
-def execute_parallel(work, list_of_operations, *args):
+def execute_parallel(work, list_of_operations, *args, **kwargs):
 	"""
 	This is the starting point of executing in parallel:
 	This function should be called when there are lines of code that
@@ -19,7 +20,7 @@ def execute_parallel(work, list_of_operations, *args):
 
 	"""
 	for library_name, execute_fn in prefered_parallel_libraries.items():
-		status_or_values = execute_fn(work, list_of_operations, *args)
+		status_or_values = execute_fn(work, list_of_operations, *args, **kwargs)
 		#continue looking
 		if( status_or_values is uninstalled ):
 			continue
@@ -37,7 +38,7 @@ will be created. Run the work function and then combine their returned values an
 
 """
 
-def _execute_dask(work, list_of_operations, *args):
+def _execute_dask(work, list_of_operations, *args, **kwargs):
 	# return uninstalled
 	"""
 	This function works as follow:
@@ -78,6 +79,23 @@ def _execute_dask(work, list_of_operations, *args):
 
 		that will give us the (45,5.5) we were looking for.
 
+		The expected keywords are:
+		jit = True/False, Which refers wether or not to use 'numba.jit'. numba.jit should be used when the work function consists
+		of raw python code. Something like looping over arrays and calculating their sum.
+		Default True.
+
+		shared_res = True/False, This refers to wether or not there is an object being shared between all threads that all threads
+		could read and write in it. Default: False.
+		Example:
+
+		my_arr = []
+
+		def my_work(intervals):
+			
+			beginning_of_my_interval = intervals[0]
+			my_arr.append(beginning_of_my_interval)
+
+		This work functions not only does it read the my_arr, but also each thread needs to modify it. This is when shared_res should equal to True.
 
 	"""
 	
@@ -85,8 +103,12 @@ def _execute_dask(work, list_of_operations, *args):
 		from multiprocessing import cpu_count
 		from dask import compute, delayed
 		import dask.multiprocessing
+		import dask.threaded
+		if(kwargs['jit'] != False):
+			from numba import jit
 	except:
 		return uninstalled
+	
 	processes_count = cpu_count()
 	tasks = []
 	intervals = args[0]
@@ -108,11 +130,22 @@ def _execute_dask(work, list_of_operations, *args):
                 process_args.append( sliced_argument )
 
             if(ending_index > starting_index):
-            	tasks.append(delayed(work)(*process_args))
+            	if(kwargs.get('jit') == False):
+            		# not using jit
+            		tasks.append(delayed(work)(*process_args))
+            	else:
+            		# using jit
+            		tasks.append(delayed(jit(work))(*process_args))
 
-	list_of_results = list( compute(*tasks, get = dask.multiprocessing.get) )
-	# list_of_results = delayed(list)(tasks)
-	# list_of_results = list_of_results.compute(get = dask.multiprocessing.get)
+     # Default: Use Multiprocessing
+	_get = dask.multiprocessing.get
+
+    # If there is a shared res, use threaded
+	if(kwargs.get('shared_res') == True):
+		_get = dask.threaded.get
+	
+	list_of_results = list( compute(*tasks, get = _get) )
+
 	return _post_processing(list_of_results, list_of_operations)
 
 
@@ -149,15 +182,33 @@ def _post_processing(listOfResults,list_of_operations):
 		except IndexError:
 			simon("ran out of operations in post processing.. the rest of the attributes will be gathered using the default operation" \
 				  "(Summation).	")
-			final_values.append(_post_add(attribute))
+			final_values.append(post_add(attribute))
 
 	return tuple(final_values) if len(final_values) != 1 else final_values[0]
 
-def _post_add (arr):
+# Some basic post processing methods
+
+def post_add (arr):
 	sum = arr[0]
 	for element in arr[1:]:
 		sum += element
 	return sum
+
+
+@jit
+def post_concat_arrays(list_of_arrays):
+	big_array = np.empty(0)
+	numpy_lists = False
+
+	if(len(list_of_arrays) > 0):
+		if( type(list_of_arrays[0]) == type(np.empty(0)) ):
+			numpy_lists = True
+
+	for array in list_of_arrays:
+		big_array = np.concatenate([big_array, array])
+
+	return big_array if numpy_lists else list(big_array)
+
 
 prefered_parallel_libraries = {"dask":_execute_dask}
 
