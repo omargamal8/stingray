@@ -1,6 +1,5 @@
-from stingray.utils import simon
+from stingray.utils import simon, jit
 import numpy as np
-from numba import jit
 
 
 def execute_parallel(work, list_of_operations, *args, **kwargs):
