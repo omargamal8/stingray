@@ -38,7 +38,6 @@ will be created. Run the work function and then combine their returned values an
 """
 
 def _execute_dask(work, list_of_operations, *args, **kwargs):
-	# return uninstalled
 	"""
 	This function works as follow:
 	1- Check how many cores are availble
@@ -103,12 +102,12 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
 		from dask import compute, delayed
 		import dask.multiprocessing
 		import dask.threaded
-		if(kwargs['jit'] != False):
+		if(kwargs.get('jit') == None or kwargs['jit'] == True):
 			from numba import jit
-	except:
+	except Exception as e: 
 		return uninstalled
-	
-	processes_count = cpu_count()
+
+	processes_count = cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
 	tasks = []
 	intervals = args[0]
 	for i in range(processes_count):
@@ -147,6 +146,70 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
 
 	return _post_processing(list_of_results, list_of_operations)
 
+def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
+	try:
+		from multiprocessing import Process, cpu_count, Pipe
+		from threading import Thread 
+	except:
+		# It will never return uninstalled.
+		return uninstalled
+
+	processes_count = cpu_count()
+	processes = []
+	intervals = args[0]
+
+	pipes = []
+	for i in range(processes_count):
+            
+            process_share = ( len(intervals) // processes_count )
+            starting_index = i * process_share
+           
+            if(i == processes_count -1):
+            	#last process takes from the starting index till the end of the array
+            	ending_index = len(intervals)
+            else:
+            	ending_index = min((starting_index + process_share), len(intervals))
+
+            #slice each argument
+            process_args = []
+            for argument in args:
+                sliced_argument = argument[starting_index:ending_index]
+                process_args.append( sliced_argument )
+
+			#append on the arguments the pipe which will be used to communicate a subprocess with the main thread.           
+            parent_pipe, child_pipe = Pipe()
+            pipes.append(parent_pipe)
+            process_args.append(child_pipe)
+            process_args.append(i)  # for the subprocess to know its index
+            if(ending_index > starting_index):
+                if(kwargs.get('jit') == False):
+                    # not using jit
+                    process = Process(target = (work), args = process_args)
+                else:
+                    # using jit
+                    process = Process(target = (jit(work)), args = process_args)
+
+                processes.append(process)
+
+	for process in processes:
+		process.start()
+
+	results = [[] for _ in range(processes_count)]
+	recv_threads = []
+	
+	def recvv(pipe, i ):
+		results[i] = pipe.recv()
+
+	for i, process in enumerate(processes):
+		t = Thread(target = recvv, args = (pipes[i],i,))
+		recv_threads.append(t)
+		t.start()
+
+	for i, process in enumerate(processes):
+		process.join()
+		recv_threads[i].join()
+
+	return  _post_processing(results,list_of_operations)
 
 
 def _execute_sequential(work, *args):
@@ -206,10 +269,13 @@ def post_concat_arrays(list_of_arrays):
 	for array in list_of_arrays:
 		big_array = np.concatenate([big_array, array])
 
+
 	return big_array if numpy_lists else list(big_array)
 
-
-prefered_parallel_libraries = {"dask":_execute_dask}
+from collections import OrderedDict
+prefered_parallel_libraries = OrderedDict()
+prefered_parallel_libraries["multiP"] = _execute_multiprocess
+prefered_parallel_libraries["dask"] = _execute_dask
 
 uninstalled = object()
 
