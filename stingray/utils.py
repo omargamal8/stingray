@@ -3,6 +3,7 @@ from __future__ import (absolute_import, unicode_literals, division,
 import sys
 import collections
 import numbers
+from six import string_types
 
 import warnings
 import numpy as np
@@ -13,9 +14,11 @@ import numpy as np
 HAS_NUMBA = False
 try:
     from numba import jit
+
     HAS_NUMBA = True
 except ImportError:
     warnings.warn("Numba not installed. Faking it")
+
 
     class jit(object):
 
@@ -30,7 +33,7 @@ except ImportError:
 
 
 def _root_squared_mean(array):
-    return np.sqrt(np.sum(array**2)) / len(array)
+    return np.sqrt(np.sum(array ** 2)) / len(array)
 
 
 def simon(message, **kwargs):
@@ -52,7 +55,6 @@ def simon(message, **kwargs):
 
 
 def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None):
-
     """Rebin some data to an arbitrary new data resolution. Either sum
     the data points in the new bins or average them.
 
@@ -162,7 +164,7 @@ def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None):
         ybin = ybin[:-1]
         ybinerr = ybinerr[:-1]
 
-    new_x0 = (x[0] - (0.5*dx_old)) + (0.5*dx_new)
+    new_x0 = (x[0] - (0.5 * dx_old)) + (0.5 * dx_new)
     xbin = np.arange(ybin.shape[0]) * dx_new + new_x0
 
     return xbin, ybin, ybinerr, step_size
@@ -225,7 +227,7 @@ def rebin_data_log(x, y, f, y_err=None, dx=None):
     # until we reach the maximum frequency, increase the width of each
     # frequency bin by f
     while binx[-1] <= maxx:
-        binx.append(binx[-1] + dx*(1.0+f))
+        binx.append(binx[-1] + dx * (1.0 + f))
         dx = binx[-1] - binx[-2]
 
     # compute the mean of the ys that fall into each new frequency bin.
@@ -335,7 +337,7 @@ def is_int(obj):
     return isinstance(obj, (numbers.Integral, np.integer))
 
 
-def get_random_state(random_state = None):
+def get_random_state(random_state=None):
     if not random_state:
         random_state = np.random.mtrand._rand
     else:
@@ -343,7 +345,7 @@ def get_random_state(random_state = None):
             random_state = np.random.RandomState(random_state)
         elif not isinstance(random_state, np.random.RandomState):
             raise ValueError("{value} can't be used to generate a numpy.random.RandomState".format(
-                value = random_state
+                value=random_state
             ))
 
     return random_state
@@ -356,7 +358,7 @@ def baseline_als(y, lam, p, niter=10):
     https://www.researchgate.net/publication/228961729_Technical_Report_Baseline_Correction_with_Asymmetric_Least_Squares_Smoothing
     The Python translation is partly from
     http://stackoverflow.com/questions/29156532/python-baseline-correction-library
-    
+
     Parameters
     ----------
     y : array of floats
@@ -375,8 +377,8 @@ def baseline_als(y, lam, p, niter=10):
     for i in range(niter):
         W = sparse.spdiags(w, 0, L, L)
         Z = W + lam * D.dot(D.transpose())
-        z = sparse.linalg.spsolve(Z, w*y)
-        w = p * (y > z) + (1-p) * (y < z)
+        z = sparse.linalg.spsolve(Z, w * y)
+        w = p * (y > z) + (1 - p) * (y < z)
     return z
 
 
@@ -401,9 +403,9 @@ def excess_variance(lc, normalization='fvar'):
     lc_actual_var = np.var(lc.counts)
     var_xs = lc_actual_var - lc_mean_var
     mean_lc = np.mean(lc.counts)
-    mean_ctvar = np.mean(mean_lc ** 2)
+    mean_ctvar = mean_lc ** 2
 
-    fvar = var_xs / mean_ctvar
+    fvar = np.sqrt(var_xs / mean_ctvar)
 
     N = len(lc.counts)
     var_xs_err_A = np.sqrt(2 / N) * lc_mean_var / mean_lc ** 2
@@ -417,3 +419,95 @@ def excess_variance(lc, normalization='fvar'):
     elif normalization == 'none' or normalization is None:
         return var_xs, var_xs_err
 
+
+def create_window(N, window_type='uniform'):
+    """ A method to create window functions commonly used in signal processing.
+        Windows supported are:
+        Hamming, Hanning, uniform(rectangular window), triangular window, blackmann window among others.
+
+        Parameters
+        ----------
+        N : int
+            Total number of data points in window. If negative, abs is taken.
+        window_type : {'uniform', 'parzen', 'hamming', 'hanning', 'traingular', 'welch', 'blackmann', 'flat-top'}, optional, default 'uniform'
+            Type of window to create.
+         Returns
+        -------
+        window: numpy.ndarray
+            Window function of length N.
+    """
+
+    if not isinstance(N, int):
+        raise TypeError('N (window length) must be an integer')
+
+    WINDOWS = ['uniform', 'parzen', 'hamming', 'hanning', 'triangular', 'welch', 'blackmann', 'flat-top']
+
+    if not isinstance(window_type, string_types):
+        raise TypeError('type of window must be specified as string!')
+
+    window_type = window_type.lower()
+    if window_type not in WINDOWS:
+        raise ValueError("Wrong window type specified or window function is not available")
+
+    # Return empty array as window if N = 0
+    if N == 0:
+        return np.array([])
+
+    window = None
+    N = abs(N)
+
+    # Window samples index
+    n = np.arange(N)
+
+    # Constants
+    N_minus_1 = N - 1
+    N_by_2 = np.int((np.floor((N_minus_1) / 2)))
+
+    # Create Windows
+    if window_type == 'uniform':
+        window = np.ones(N)
+
+    if window_type == 'parzen':
+        N_parzen = np.int(np.ceil((N + 1) / 2))
+        N2_plus_1 = np.int(np.floor((N_parzen / 2))) + 1
+
+        window = np.zeros(N_parzen)
+        windlag0 = np.arange(0, N2_plus_1) / (N_parzen - 1)
+        windlag1 = 1 - np.arange(N2_plus_1, N_parzen) / (N_parzen - 1)
+        window[:N2_plus_1] = 1 - (1 - windlag0) * windlag0 * windlag0 * 6
+        window[N2_plus_1:] = windlag1 * windlag1 * windlag1 * 2
+        lagindex = np.arange(N_parzen - 1, 0, -1)
+        window = np.concatenate((window[lagindex], window))
+        window = window[:N]
+
+    if window_type == 'hamming':
+        window = 0.54 - 0.46 * np.cos((2 * np.pi * n) / N_minus_1)
+
+    if window_type == 'hanning':
+        window = 0.5 * (1 - np.cos(2 * np.pi * n / N_minus_1))
+
+    if window_type == 'triangular':
+        window = 1 - np.abs((n - (N_by_2)) / N)
+
+    if window_type == 'welch':
+        N_minus_1_by_2 = N_minus_1 / 2
+        window = 1 - np.square((n - N_minus_1_by_2) / N_minus_1_by_2)
+        
+    if window_type == 'blackmann':
+        a0 = 0.42659
+        a1 = 0.49656
+        a2 = 0.076849
+        window = a0 - a1 * np.cos((2 * np.pi * n) / N_minus_1) + a2 * np.cos((4 * np.pi * n) / N_minus_1)
+
+    if window_type == 'flat-top':
+        a0 = 1
+        a1 = 1.93
+        a2 = 1.29
+        a3 = 0.388
+        a4 = 0.028
+        window = a0 - a1 * np.cos((2 * np.pi * n) / N_minus_1) + \
+                 a2 * np.cos((4 * np.pi * n) / N_minus_1) - \
+                 a3 * np.cos((6 * np.pi * n) / N_minus_1) + \
+                 a4 * np.cos((8 * np.pi * n) / N_minus_1)
+
+    return window
