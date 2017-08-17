@@ -613,7 +613,7 @@ class AveragedCrossspectrum(Crossspectrum):
                                     dt=lc1.dt)
         _norm = self.norm
 
-        def _create_segments_spectrum(start_inds, end_inds):
+        def _create_segments_spectrum(start_inds, end_inds, que=None, index = 0):
             cs_all = []
             nphots1_all = []
             nphots2_all = []
@@ -639,7 +639,11 @@ class AveragedCrossspectrum(Crossspectrum):
                 cs_all.append(cs_seg)
                 nphots1_all.append(np.sum(lc1_seg.counts))
                 nphots2_all.append(np.sum(lc2_seg.counts))
-            return cs_all, nphots1_all, nphots2_all
+
+            if que == None:
+                return cs_all, nphots1_all, nphots2_all
+            else:
+                que.put([cs_all, nphots1_all, nphots2_all])
 
 
         cs_all, nphots1_all, nphots2_all = \

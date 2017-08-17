@@ -108,35 +108,34 @@ def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None):
 
     intervals = np.arange(0,y.shape[0], step_size)
 
-    def wrapper(interval, pipe=None, index = 0):
-        output = []
-        outputerr = []
-        for i in interval:
-            total = 0
-            totalerr = 0
+    def wrapper(interval, que=None, index = 0):
+            output = []
+            outputerr = []
+            for i in interval:
+                    total = 0
+                    totalerr = 0
 
-            int_i = int(i)
-            prev_frac = int_i + 1 - i
-            prev_bin = int_i
-            total += prev_frac * y[prev_bin]
-            totalerr += prev_frac * (yerr[prev_bin]**2)
+                    int_i = int(i)
+                    prev_frac = int_i + 1 - i
+                    prev_bin = int_i
+                    total += prev_frac * y[prev_bin]
+                    totalerr += prev_frac * (yerr[prev_bin]**2)
 
-            if i + step_size < len(x):
-                # Fractional part of next bin:
-                next_frac = i + step_size - int(i + step_size)
-                next_bin = int(i + step_size)
-                total += next_frac * y[next_bin]
-                totalerr += next_frac * (yerr[next_bin]**2)
+                    if i + step_size < len(x):
+                        # Fractional part of next bin:
+                        next_frac = i + step_size - int(i + step_size)
+                        next_bin = int(i + step_size)
+                        total += next_frac * y[next_bin]
+                        totalerr += next_frac * (yerr[next_bin]**2)
 
-            total += sum(y[int(i+1):int(i+step_size)])
-            totalerr += sum(yerr[int(i+1):int(step_size)]**2)
-            output.append(total)
-            outputerr.append(np.sqrt(totalerr))
-
-        if pipe == None:
-            return output, outputerr
-        else:
-            pipe.send([output,outputerr])
+                    total += sum(y[int(i+1):int(i+step_size)])
+                    totalerr += sum(yerr[int(i+1):int(step_size)]**2)
+                    output.append(total)
+                    outputerr.append(np.sqrt(totalerr))
+            if que == None:
+                return output, outputerr
+            else:
+                que.put([output,outputerr])
 
     from stingray.parallel import execute_parallel, _execute_sequential, post_concat_arrays
     output, outputerr = execute_parallel(wrapper, [post_concat_arrays, post_concat_arrays], intervals, jit = False)
