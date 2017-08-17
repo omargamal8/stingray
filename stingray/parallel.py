@@ -1,7 +1,6 @@
 from stingray.utils import simon, jit
 import numpy as np
 
-
 def execute_parallel(work, list_of_operations, *args, **kwargs):
 	"""
 	This is the starting point of executing in parallel:
@@ -19,7 +18,16 @@ def execute_parallel(work, list_of_operations, *args, **kwargs):
 
 	"""
 	for library_name, execute_fn in prefered_parallel_libraries.items():
-		status_or_values = execute_fn(work, list_of_operations, *args, **kwargs)
+		try:
+			status_or_values = execute_fn(work, list_of_operations, *args, **kwargs)
+		except Exception as e:
+			error_message = ""
+			if hasattr(e, 'message'):
+				error_message = (e.message)
+			else:
+				error_message = (e)
+			simon.warning("A problem occured while computing in parallel mode. (", error_message ,") Switching to sequential..")
+			return _execute_sequential(work,*args)
 		#continue looking
 		if( status_or_values is uninstalled ):
 			continue
@@ -146,9 +154,11 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
 
 	return _post_processing(list_of_results, list_of_operations)
 
+
+
 def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
 	try:
-		from multiprocessing import Process, cpu_count, Pipe
+		from multiprocessing import Process, cpu_count, Queue
 		from threading import Thread 
 	except:
 		# It will never return uninstalled.
@@ -158,7 +168,7 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
 	processes = []
 	intervals = args[0]
 
-	pipes = []
+	communication_channels = []
 	for i in range(processes_count):
             
             process_share = ( len(intervals) // processes_count )
@@ -176,10 +186,9 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
                 sliced_argument = argument[starting_index:ending_index]
                 process_args.append( sliced_argument )
 
-			#append on the arguments the pipe which will be used to communicate a subprocess with the main thread.           
-            parent_pipe, child_pipe = Pipe()
-            pipes.append(parent_pipe)
-            process_args.append(child_pipe)
+			#append on the arguments the channel which will be used to communicate a subprocess with the main thread.           
+            communication_que = Queue()
+            process_args.append(communication_que)
             process_args.append(i)  # for the subprocess to know its index
             if(ending_index > starting_index):
                 if(kwargs.get('jit') == False):
@@ -188,25 +197,34 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
                 else:
                     # using jit
                     process = Process(target = (jit(work)), args = process_args)
-
+                
                 processes.append(process)
+                communication_channels.append(communication_que)
 
+	def recvv(que, i ):
+		while True:
+				if(not que.empty()):
+					results[i] = que.get()
+					break
+
+    # initiate computing processes
 	for process in processes:
 		process.start()
 
-	results = [[] for _ in range(processes_count)]
+	results = [[] for _ in range(len(processes))]
 	recv_threads = []
 	
-	def recvv(pipe, i ):
-		results[i] = pipe.recv()
+			
 
+	# Create Recieving threads
 	for i, process in enumerate(processes):
-		t = Thread(target = recvv, args = (pipes[i],i,))
+		t = Thread(target = recvv, args = (communication_channels[i],i,))
 		recv_threads.append(t)
 		t.start()
 
+	# join threads and processes
 	for i, process in enumerate(processes):
-		process.join()
+		process.join() 	
 		recv_threads[i].join()
 
 	return  _post_processing(results,list_of_operations)
