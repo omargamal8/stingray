@@ -22,7 +22,7 @@ addons:
 branches:
   only:
     - "master"
-
+    - "Testing"
 env:
     global:
         # The following versions are the 'default' for tests, unless
