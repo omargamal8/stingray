@@ -111,6 +111,7 @@ def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None):
     intervals = np.arange(0,y.shape[0], step_size)
 
     def wrapper(interval, que=None, index = 0):
+        try:
             output = []
             outputerr = []
             for i in interval:
@@ -138,6 +139,11 @@ def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None):
                 return output, outputerr
             else:
                 que.put([output,outputerr])
+        except Exception as e:
+            if que != None:
+                que.put(e)
+            else:
+                raise e
 
     from stingray.parallel import execute_parallel, _execute_sequential, post_concat_arrays
     output, outputerr = execute_parallel(wrapper, [post_concat_arrays, post_concat_arrays], intervals, jit = False)

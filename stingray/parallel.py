@@ -26,7 +26,7 @@ def execute_parallel(work, list_of_operations, *args, **kwargs):
 				error_message = (e.message)
 			else:
 				error_message = (e)
-			simon.warning("A problem occured while computing in parallel mode. (", error_message ,") Switching to sequential..")
+			simon("A problem occured while computing in parallel mode. ("+ str(error_message)+ ") Switching to sequential..")
 			return _execute_sequential(work,*args)
 		#continue looking
 		if( status_or_values is uninstalled ):
@@ -227,6 +227,10 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
 		process.join() 	
 		recv_threads[i].join()
 
+	#Check if there was any Exceptions
+	for result in results:
+		if(isinstance(result, Exception)):
+			raise result
 	return  _post_processing(results,list_of_operations)
 
 
