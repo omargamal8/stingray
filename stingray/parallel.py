@@ -1,4 +1,4 @@
-# from stingray.utils import simon, jit
+from stingray.utils import simon
 import numpy as np
 
 def execute_parallel(work, list_of_operations, *args, **kwargs):
@@ -17,6 +17,7 @@ def execute_parallel(work, list_of_operations, *args, **kwargs):
 	list_of_operations is a list containing each after processing operation to be done on each item in the returned items.
 
 	"""
+	return _execute_sequential(work, *args)
 	for library_name, execute_fn in prefered_parallel_libraries.items():
 		try:
 			status_or_values = execute_fn(work, list_of_operations, *args, **kwargs)
