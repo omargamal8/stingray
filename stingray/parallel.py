@@ -45,114 +45,114 @@ will be created. Run the work function and then combine their returned values an
 
 """
 
-def _execute_dask(work, list_of_operations, *args, **kwargs):
-	"""
-	This function works as follow:
-	1- Check how many cores are availble
-	2- Determine each process slice size.
-	3- Loop over the arguments and slice them according to each process share.
-	4- After setting the process share append the function call to the list of tasks.
-	5- When we are done filling our tasks, we should call for dask's compute and wait for the results.
-	6- The results that are returned from computing all the tasks is a collection (specifically tuple)
-	   of the returned values by each process.
-	   Example:
-		   arr = [1,2,3,4,5,6,7,8,9,10]
-		   def add(arr):
-		   		return np.asarray(list).sum()
-		   def avg(arr):
-		   		return add(arr) / len(arr)
-		   def avg_sum (arr):
-			   	sum = 0
-			   	for number in arr:
-					sum += arr
-				avg = sum / len(arr)
-				return sum, avg
+# def _execute_dask(work, list_of_operations, *args, **kwargs):
+# 	"""
+# 	This function works as follow:
+# 	1- Check how many cores are availble
+# 	2- Determine each process slice size.
+# 	3- Loop over the arguments and slice them according to each process share.
+# 	4- After setting the process share append the function call to the list of tasks.
+# 	5- When we are done filling our tasks, we should call for dask's compute and wait for the results.
+# 	6- The results that are returned from computing all the tasks is a collection (specifically tuple)
+# 	   of the returned values by each process.
+# 	   Example:
+# 		   arr = [1,2,3,4,5,6,7,8,9,10]
+# 		   def add(arr):
+# 		   		return np.asarray(list).sum()
+# 		   def avg(arr):
+# 		   		return add(arr) / len(arr)
+# 		   def avg_sum (arr):
+# 			   	sum = 0
+# 			   	for number in arr:
+# 					sum += arr
+# 				avg = sum / len(arr)
+# 				return sum, avg
 			
-			_execute_dask(avg_sum, [add, avg], arr)
+# 			_execute_dask(avg_sum, [add, avg], arr)
 
 
-		Assume that avg_sum is our work function and we would like to execute this distributedly using dask.
-		_execute_dask will be called by the following arguments: work = avg_sum, args = [arr]
+# 		Assume that avg_sum is our work function and we would like to execute this distributedly using dask.
+# 		_execute_dask will be called by the following arguments: work = avg_sum, args = [arr]
 
-		Assuming that the number of cores available are 2. Each process share would be equal to len(arr)/2 .. = 5.
-		We slice the arguments (arr) accordingly, process1 share = [1, .. ,5]   process2 share = [6, .. ,10] 
-		We then compute.
-		The expected returned values are ((15,3), (40,8))
-		We go ahead and create two lists of each attribute first = [15, 40] second = [3, 8]
-		We call each consequent after processing method given in list_of_operations.
+# 		Assuming that the number of cores available are 2. Each process share would be equal to len(arr)/2 .. = 5.
+# 		We slice the arguments (arr) accordingly, process1 share = [1, .. ,5]   process2 share = [6, .. ,10] 
+# 		We then compute.
+# 		The expected returned values are ((15,3), (40,8))
+# 		We go ahead and create two lists of each attribute first = [15, 40] second = [3, 8]
+# 		We call each consequent after processing method given in list_of_operations.
 
-		return list_of_operations[0](first), list_of_operations[1](second)
+# 		return list_of_operations[0](first), list_of_operations[1](second)
 
-		that will give us the (45,5.5) we were looking for.
+# 		that will give us the (45,5.5) we were looking for.
 
-		The expected keywords are:
-		jit = True/False, Which refers wether or not to use 'numba.jit'. numba.jit should be used when the work function consists
-		of raw python code. Something like looping over arrays and calculating their sum.
-		Default True.
+# 		The expected keywords are:
+# 		jit = True/False, Which refers wether or not to use 'numba.jit'. numba.jit should be used when the work function consists
+# 		of raw python code. Something like looping over arrays and calculating their sum.
+# 		Default True.
 
-		shared_res = True/False, This refers to wether or not there is an object being shared between all threads that all threads
-		could read and write in it. Default: False.
-		Example:
+# 		shared_res = True/False, This refers to wether or not there is an object being shared between all threads that all threads
+# 		could read and write in it. Default: False.
+# 		Example:
 
-		my_arr = []
+# 		my_arr = []
 
-		def my_work(intervals):
+# 		def my_work(intervals):
 			
-			beginning_of_my_interval = intervals[0]
-			my_arr.append(beginning_of_my_interval)
+# 			beginning_of_my_interval = intervals[0]
+# 			my_arr.append(beginning_of_my_interval)
 
-		This work functions not only does it read the my_arr, but also each thread needs to modify it. This is when shared_res should equal to True.
+# 		This work functions not only does it read the my_arr, but also each thread needs to modify it. This is when shared_res should equal to True.
 
-	"""
+# 	"""
 	
-	try:
-		from multiprocessing import cpu_count
-		from dask import compute, delayed
-		import dask.multiprocessing
-		import dask.threaded
-		if(kwargs.get('jit') == None or kwargs['jit'] == True):
-			from numba import jit
-	except Exception as e: 
-		return uninstalled
+# 	try:
+# 		from multiprocessing import cpu_count
+# 		from dask import compute, delayed
+# 		import dask.multiprocessing
+# 		import dask.threaded
+# 		if(kwargs.get('jit') == None or kwargs['jit'] == True):
+# 			from numba import jit
+# 	except Exception as e: 
+# 		return uninstalled
 
-	processes_count = cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
-	tasks = []
-	intervals = args[0]
-	for i in range(processes_count):
+# 	processes_count = cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
+# 	tasks = []
+# 	intervals = args[0]
+# 	for i in range(processes_count):
             
-            process_share = int( len(intervals) / processes_count )
-            starting_index = i * process_share
+#             process_share = int( len(intervals) / processes_count )
+#             starting_index = i * process_share
            
-            if(i == processes_count -1):
-            	#last process takes from the starting index till the end of the array
-            	ending_index = len(intervals)
-            else:
-            	ending_index = min((starting_index + process_share), len(intervals))
+#             if(i == processes_count -1):
+#             	#last process takes from the starting index till the end of the array
+#             	ending_index = len(intervals)
+#             else:
+#             	ending_index = min((starting_index + process_share), len(intervals))
 
-            #slice each argument
-            process_args = []
-            for argument in args:
-                sliced_argument = argument[starting_index:ending_index]
-                process_args.append( sliced_argument )
+#             #slice each argument
+#             process_args = []
+#             for argument in args:
+#                 sliced_argument = argument[starting_index:ending_index]
+#                 process_args.append( sliced_argument )
 
-            if(ending_index > starting_index):
-            	if(kwargs.get('jit') == False):
-            		# not using jit
-            		tasks.append(delayed(work)(*process_args))
-            	else:
-            		# using jit
-            		tasks.append(delayed(jit(work))(*process_args))
+#             if(ending_index > starting_index):
+#             	if(kwargs.get('jit') == False):
+#             		# not using jit
+#             		tasks.append(delayed(work)(*process_args))
+#             	else:
+#             		# using jit
+#             		tasks.append(delayed(jit(work))(*process_args))
 
-     # Default: Use Multiprocessing
-	_get = dask.multiprocessing.get
+#      # Default: Use Multiprocessing
+# 	_get = dask.multiprocessing.get
 
-    # If there is a shared res, use threaded
-	if(kwargs.get('shared_res') == True):
-		_get = dask.threaded.get
+#     # If there is a shared res, use threaded
+# 	if(kwargs.get('shared_res') == True):
+# 		_get = dask.threaded.get
 	
-	list_of_results = list( compute(*tasks, get = _get) )
+# 	list_of_results = list( compute(*tasks, get = _get) )
 
-	return _post_processing(list_of_results, list_of_operations)
+# 	return _post_processing(list_of_results, list_of_operations)
 
 
 
@@ -297,7 +297,7 @@ def post_concat_arrays(list_of_arrays):
 from collections import OrderedDict
 prefered_parallel_libraries = OrderedDict()
 prefered_parallel_libraries["multiP"] = _execute_multiprocess
-prefered_parallel_libraries["dask"] = _execute_dask
+# prefered_parallel_libraries["dask"] = _execute_dask
 
 uninstalled = object()
 
