@@ -1,4 +1,4 @@
-from stingray.utils import simon, jit
+# from stingray.utils import simon, jit
 import numpy as np
 
 def execute_parallel(work, list_of_operations, *args, **kwargs):
@@ -196,7 +196,12 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
                     process = Process(target = (work), args = process_args)
                 else:
                     # using jit
-                    process = Process(target = (jit(work)), args = process_args)
+                    try:
+                    	from numba import jit
+                    	process = Process(target = (jit(work)), args = process_args)
+
+                    except:
+                    	process = Process(target = (work), args = process_args)
                 
                 processes.append(process)
                 communication_channels.append(communication_que)
@@ -279,7 +284,7 @@ def post_add (arr):
 	return sum
 
 
-@jit
+# @jit
 def post_concat_arrays(list_of_arrays):
 	big_array = np.empty(0)
 	numpy_lists = False
