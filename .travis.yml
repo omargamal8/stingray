@@ -22,7 +22,7 @@ addons:
 branches:
   only:
     - "master"
-
+    - "Sourcing_origin_master"
 env:
     global:
         # The following versions are the 'default' for tests, unless
