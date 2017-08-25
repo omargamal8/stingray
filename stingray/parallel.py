@@ -163,8 +163,7 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
 	except:
 		# It will never return uninstalled.
 		return uninstalled
-
-	processes_count = cpu_count()
+	processes_count = cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
 	processes = []
 	intervals = args[0]
 

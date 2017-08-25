@@ -48,7 +48,7 @@ def coherence(lc1, lc2):
 
 class Crossspectrum(object):
 
-    def __init__(self, lc1=None, lc2=None, norm='none', gti=None):
+    def __init__(self, lc1=None, lc2=None, norm='none', gti=None, parallel = False):
         """
         Make a cross spectrum from a (binned) light curve.
         You can also make an empty Crossspectrum object to populate with your
@@ -133,7 +133,7 @@ class Crossspectrum(object):
         self.lc1 = lc1
         self.lc2 = lc2
 
-        self._make_crossspectrum(lc1, lc2)
+        self._make_crossspectrum(lc1, lc2, parallel = parallel)
         # These are needed to calculate coherence
         self._make_auxil_pds(lc1, lc2)
 
@@ -142,7 +142,7 @@ class Crossspectrum(object):
             self.pds1 = Crossspectrum(lc1, lc1, norm='none')
             self.pds2 = Crossspectrum(lc2, lc2, norm='none')
 
-    def _make_crossspectrum(self, lc1, lc2):
+    def _make_crossspectrum(self, lc1, lc2, parallel = False):
 
         # make sure the inputs work!
         if not isinstance(lc1, Lightcurve):
@@ -494,7 +494,7 @@ class Crossspectrum(object):
 class AveragedCrossspectrum(Crossspectrum):
 
     def __init__(self, lc1=None, lc2=None, segment_size=None,
-                 norm='none', gti=None):
+                 norm='none', gti=None, parallel=False):
         """
         Make an averaged cross spectrum from a light curve by segmenting two
         light curves, Fourier-transforming each segment and then averaging the
@@ -574,7 +574,7 @@ class AveragedCrossspectrum(Crossspectrum):
 
         self.segment_size = segment_size
 
-        Crossspectrum.__init__(self, lc1, lc2, norm, gti=gti)
+        Crossspectrum.__init__(self, lc1, lc2, norm, gti=gti, parallel = parallel)
 
         return
 
@@ -588,7 +588,7 @@ class AveragedCrossspectrum(Crossspectrum):
                                               segment_size=self.segment_size,
                                               norm='none', gti=lc2.gti)
 
-    def _make_segment_spectrum(self, lc1, lc2, segment_size):
+    def _make_segment_spectrum(self, lc1, lc2, segment_size, parallel = False):
 
         # TODO: need to update this for making cross spectra.
         assert isinstance(lc1, Lightcurve)
@@ -652,15 +652,19 @@ class AveragedCrossspectrum(Crossspectrum):
                 else:
                     raise e
 
-        cs_all, nphots1_all, nphots2_all = \
-        execute_parallel(_create_segments_spectrum,
-                        [post_concat_arrays,post_concat_arrays,post_concat_arrays],
-                         start_inds, end_inds,
-                         jit = False, shared_res = False)
+        if(parallel == True):
+            cs_all, nphots1_all, nphots2_all = \
+            execute_parallel(_create_segments_spectrum,
+                            [post_concat_arrays,post_concat_arrays,post_concat_arrays],
+                             start_inds, end_inds,
+                             jit = False, shared_res = False)
+
+        else:
+            cs_all, nphots1_all, nphots2_all = _create_segments_spectrum(start_inds, end_inds)
 
         return cs_all, nphots1_all, nphots2_all
 
-    def _make_crossspectrum(self, lc1, lc2):
+    def _make_crossspectrum(self, lc1, lc2, parallel = False):
 
         # chop light curves into segments
         if isinstance(lc1, Lightcurve) and \
@@ -668,7 +672,7 @@ class AveragedCrossspectrum(Crossspectrum):
 
             if self.type == "crossspectrum":
                 self.cs_all, nphots1_all, nphots2_all = \
-                    self._make_segment_spectrum(lc1, lc2, self.segment_size)
+                    self._make_segment_spectrum(lc1, lc2, self.segment_size, parallel = parallel)
 
             elif self.type == "powerspectrum":
                 self.cs_all, nphots1_all = \
@@ -686,7 +690,7 @@ class AveragedCrossspectrum(Crossspectrum):
                 if self.type == "crossspectrum":
                     cs_sep, nphots1_sep, nphots2_sep = \
                         self._make_segment_spectrum(lc1_seg, lc2_seg,
-                                                    self.segment_size)
+                                                    self.segment_size, parallel = parallel)
                     nphots2_all.append(nphots2_sep)
                 elif self.type == "powerspectrum":
                     cs_sep, nphots1_sep = \

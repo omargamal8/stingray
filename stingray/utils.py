@@ -54,7 +54,7 @@ def simon(message, **kwargs):
     warnings.warn("SIMON says: {0}".format(message), **kwargs)
 
 
-def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None):
+def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None, parallel = False):
     """Rebin some data to an arbitrary new data resolution. Either sum
     the data points in the new bins or average them.
 
@@ -144,10 +144,12 @@ def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None):
                 que.put(e)
             else:
                 raise e
-
-    from stingray.parallel import execute_parallel, _execute_sequential, post_concat_arrays
-    output, outputerr = execute_parallel(wrapper, [post_concat_arrays, post_concat_arrays], intervals, jit = False)
-    
+    if(parallel == True):
+        from stingray.parallel import execute_parallel, _execute_sequential, post_concat_arrays
+        output, outputerr = execute_parallel(wrapper, [post_concat_arrays, post_concat_arrays], intervals, jit = False)
+    else:
+        output, outputerr = wrapper(intervals)
+           
     output = np.asarray(output)
     outputerr = np.asarray(outputerr)
 

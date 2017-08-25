@@ -506,7 +506,7 @@ class Lightcurve(object):
 
         return Lightcurve(time, counts, gti=gti, mjdref=mjdref, dt=dt)
 
-    def rebin(self, dt_new=None, f=None, method='sum'):
+    def rebin(self, dt_new=None, f=None, method='sum', parallel = False):
         """
         Rebin the light curve to a new time resolution. While the new
         resolution need not be an integer multiple of the previous time
@@ -547,7 +547,7 @@ class Lightcurve(object):
 
         bin_time, bin_counts, bin_err, _ = \
             utils.rebin_data(self.time, self.counts, dt_new,
-                             yerr=self.counts_err, method=method)
+                             yerr=self.counts_err, method=method, parallel = parallel)
 
         lc_new = Lightcurve(bin_time, bin_counts, err=bin_err,
                             mjdref=self.mjdref, dt=dt_new)
