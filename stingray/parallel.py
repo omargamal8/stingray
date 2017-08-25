@@ -1,4 +1,4 @@
-from stingray.utils import simon, jit
+from stingray.utils import simon
 import numpy as np
 
 def execute_parallel(work, list_of_operations, *args, **kwargs):
@@ -279,7 +279,6 @@ def post_add (arr):
 	return sum
 
 
-@jit
 def post_concat_arrays(list_of_arrays):
 	big_array = np.empty(0)
 	numpy_lists = False
