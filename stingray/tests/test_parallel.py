@@ -4,22 +4,10 @@ import warnings
 from astropy.tests.helper import pytest
 from stingray import AveragedCrossspectrum, Lightcurve
 
-parallel_library = None
-
-def next_parallel_library_gen():
-	parallel_libraries = ["multiP", "dask"]
-	i = 0
-	while True:
-		yield parallel_libraries[i]
-		i+=1
-		i = i % len(parallel_libraries)
-
-global_generator = next_parallel_library_gen()
 
 class TestMultiP:
 	def setup_class(self):
 		self.interval = np.arange(-10,11,1)
-		self.parallel_library = next(global_generator)
 		
 	def test_single_return(self):
 		def work(arr, que = None, index = 0):
@@ -30,8 +18,8 @@ class TestMultiP:
 				que.put(sum)
 			else:
 				return sum
-	interval = self.interval
-	parallel_library = "multiP"			
+		interval = self.interval
+		parallel_library = "multiP"			
 		with warnings.catch_warnings(record=True) as w:
 			returned = execute_parallel(work, [post_add], interval, prefered=parallel_library)
 			assert returned == np.sum(interval)
@@ -39,85 +27,6 @@ class TestMultiP:
 			for warning in w:
 				assert not("switching to sequential" in str(warning.message))
 		
-
-	def test_multiple_returns(self):
-
-		def work(arr, que = None, index = 0):
-			sum = 0
-			mul = 1
-			for element in arr:
-				sum += element
-				mul *= element
-
-			if(que != None):
-				que.put([sum, mul])
-			else:
-				return sum, mul
-
-		def post_mul(arr):
-			mul = 1
-			for element in arr:
-				mul *= element
-			return mul
-		
-		index = np.where(self.interval == 0 )
-		no_zeros = np.delete( self.interval, index)
-		with warnings.catch_warnings(record=True) as w:
-			returned = execute_parallel(work, [post_add, post_mul], no_zeros, prefered=self.parallel_library)
-			assert returned == (np.sum(self.interval), post_mul(no_zeros))
-			# Check that it was actually executed in parallel not sequential.
-			for warning in w:
-				assert not ("switching to sequential" in str(warning.message))
-
-
-
-
-	def test_multiple_returns_arrays(self):
-
-		def work(arr, que = None, index = 0):
-			a = []
-			b = []
-			for _ in arr:
-				a+=[1]
-				b+=[2]
-			if(que != None):
-				que.put( [ a, b ] )
-			else:
-				return a, b
-
-
-		with warnings.catch_warnings(record=True) as w:
-			returned = execute_parallel(work, [post_concat_arrays, post_concat_arrays], self.interval, prefered=self.parallel_library)
-			
-			a,b = work(self.interval)
-			
-			assert np.allclose(returned[0], a)
-			assert np.allclose(returned[1], b)
-
-			# Check that it was actually executed in parallel not sequential.
-			for warning in w:
-				assert not ("switching to sequential" in str(warning.message))
-
-
-	def test_switch_to_sequential(self):
-
-		def work(arr, que = None, index = 0):
-			return None
-
-		with warnings.catch_warnings(record=True) as w:
-			execute_parallel(work, [lambda arr: arr], 2, prefered=self.parallel_library)
-			assert any("switching to sequential" in str(warning.message) for warning in w)
-
-	def test_exposing_exception(self):
-		def work(arr, que = None, index = 0):
-			if(que != None):
-				que.put(ValueError)
-			else:
-				raise ValueError
-
-
-		with pytest.raises(ValueError) as ex:
-			execute_parallel(work, [lambda arr: arr], self.interval, prefered=self.parallel_library)
 
 
 	def test_AvCs_parallel(self):
