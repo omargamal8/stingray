@@ -23,18 +23,16 @@ class TestMultiP:
 		# self.parallel_library = "multiP"
 		
 	def test_single_return(self):
+		def work(arr, que = None, index = 0):
+			sum = 0
+			for element in arr:
+				sum += element
+			if(que != None):
+				que.put(sum)
+			else:
+				return sum
 		with warnings.catch_warnings(record=True) as w:
-			
-			def work(arr, que = None, index = 0):
-				sum = 0
-				for element in arr:
-					sum += element
-				if(que != None):
-					que.put(sum)
-				else:
-					return sum
-
-			returned = execute_parallel(work, [post_add], self.interval)
+			returned = execute_parallel(work, [stingray.parallel.post_add], self.interval)
 			assert returned == np.sum(self.interval)
 			# Check that it was actually executed in parallel not sequential.
 			for warning in w:
