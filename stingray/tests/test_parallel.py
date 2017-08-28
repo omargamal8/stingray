@@ -4,22 +4,23 @@ import warnings
 from astropy.tests.helper import pytest
 from stingray import AveragedCrossspectrum, Lightcurve
 
-parallel_library = None
+# parallel_library = None
 
-def next_parallel_library_gen():
-	parallel_libraries = ["multiP", "dask"]
-	i = 0
-	while True:
-		yield parallel_libraries[i]
-		i+=1
-		i = i % len(parallel_libraries)
+# def next_parallel_library_gen():
+# 	parallel_libraries = ["multiP", "dask"]
+# 	i = 0
+# 	while True:
+# 		yield parallel_libraries[i]
+# 		i+=1
+# 		i = i % len(parallel_libraries)
 
-global_generator = next_parallel_library_gen()
+# global_generator = next_parallel_library_gen()
 
 class TestMultiP:
 	def setup_class(self):
 		self.interval = np.arange(-10,11,1)
-		self.parallel_library = next(global_generator)
+		# self.parallel_library = next(global_generator)
+		self.parallel_library = "multiP"
 		
 	def test_single_return(self):
 		def work(arr, que = None, index = 0):
