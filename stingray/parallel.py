@@ -1,5 +1,38 @@
 from stingray.utils import simon
 import numpy as np
+from collections import OrderedDict
+
+def _initialize_prefered_library(prefered):
+	"""
+	This is how we prioritize the order of our parallel libraries
+	"""
+
+	global prefered_parallel_libraries
+	#remove any old order
+	prefered_parallel_libraries = OrderedDict()
+	# Default Order
+	prefered_parallel_libraries["multiP"] = _execute_multiprocess
+	prefered_parallel_libraries["dask"] = _execute_dask
+	if(prefered != None):
+		_rearrange_prefered_library(prefered)
+
+def _rearrange_prefered_library(prefered):
+	"""
+	This is used to rearrange the order of the sequence of parallel libraries that we will try to execute with, putting the prefered
+	library at the beginning.
+	""" 
+	global prefered_parallel_libraries
+	new_order = OrderedDict()
+	#add the prefered in the beginning
+	new_order[prefered] = prefered_parallel_libraries[prefered]
+	
+	for library_name, ex_fn in prefered_parallel_libraries.items():
+		if(library_name == prefered):
+			continue
+		else:
+			new_order[library_name] = ex_fn 
+
+	prefered_parallel_libraries = new_order
 
 def execute_parallel(work, list_of_operations, *args, **kwargs):
 	"""
@@ -17,6 +50,9 @@ def execute_parallel(work, list_of_operations, *args, **kwargs):
 	list_of_operations is a list containing each after processing operation to be done on each item in the returned items.
 
 	"""
+	# Initialize our order map.
+	_initialize_prefered_library(kwargs.get("prefered"))
+
 	for library_name, execute_fn in prefered_parallel_libraries.items():
 		try:
 			status_or_values = execute_fn(work, list_of_operations, *args, **kwargs)
@@ -26,7 +62,7 @@ def execute_parallel(work, list_of_operations, *args, **kwargs):
 				error_message = (e.message)
 			else:
 				error_message = (e)
-			simon("A problem occured while computing in parallel mode. ("+ str(error_message)+ ") Switching to sequential..")
+			simon("A problem occured while computing in parallel mode. ("+ str(error_message)+ ") switching to sequential..")
 			return _execute_sequential(work,*args)
 		#continue looking
 		if( status_or_values is uninstalled ):
@@ -110,11 +146,10 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
 		from dask import compute, delayed
 		import dask.multiprocessing
 		import dask.threaded
-		if(kwargs.get('jit') == None or kwargs['jit'] == True):
+		if(kwargs.get('jit') != None and kwargs['jit'] == True):
 			from numba import jit
 	except Exception as e: 
 		return uninstalled
-
 	processes_count = cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
 	tasks = []
 	intervals = args[0]
@@ -136,12 +171,12 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
                 process_args.append( sliced_argument )
 
             if(ending_index > starting_index):
-            	if(kwargs.get('jit') == False):
-            		# not using jit
-            		tasks.append(delayed(work)(*process_args))
-            	else:
+            	if(kwargs.get('jit') == True):
             		# using jit
             		tasks.append(delayed(jit(work))(*process_args))
+            	else:
+            		# not using jit
+            		tasks.append(delayed(work)(*process_args))
 
      # Default: Use Multiprocessing
 	_get = dask.multiprocessing.get
@@ -190,12 +225,13 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
             process_args.append(communication_que)
             process_args.append(i)  # for the subprocess to know its index
             if(ending_index > starting_index):
-                if(kwargs.get('jit') == False):
+                if(kwargs.get('jit') == True):
+                    # using jit
+                    from numba import jit
+                    process = Process(target = (jit(work)), args = process_args)
+                else:
                     # not using jit
                     process = Process(target = (work), args = process_args)
-                else:
-                    # using jit
-                    process = Process(target = (jit(work)), args = process_args)
                 
                 processes.append(process)
                 communication_channels.append(communication_que)
@@ -203,7 +239,8 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
 	def recvv(que, i ):
 		while True:
 				if(not que.empty()):
-					results[i] = que.get()
+					res = que.get()
+					results[i] = res
 					break
 
     # initiate computing processes
@@ -228,7 +265,7 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
 
 	#Check if there was any Exceptions
 	for result in results:
-		if(isinstance(result, Exception)):
+		if(type(result) == type(Exception)):
 			raise result
 	return  _post_processing(results,list_of_operations)
 
@@ -292,10 +329,8 @@ def post_concat_arrays(list_of_arrays):
 
 	return big_array if numpy_lists else list(big_array)
 
-from collections import OrderedDict
-prefered_parallel_libraries = OrderedDict()
-prefered_parallel_libraries["multiP"] = _execute_multiprocess
-prefered_parallel_libraries["dask"] = _execute_dask
+
 
 uninstalled = object()
+prefered_parallel_libraries = OrderedDict()
 
