@@ -4,24 +4,24 @@ import warnings
 from astropy.tests.helper import pytest
 from stingray import AveragedCrossspectrum, Lightcurve
 
+def single_return_work(arr, que = None, index = 0):
+	sum = 0
+	for element in arr:
+		sum += element
+	if(que != None):
+		que.put(sum)
+	else:
+		return sum
 
 class TestMultiP:
 	def setup_class(self):
 		self.interval = np.arange(-10,11,1)
 		
 	def test_single_return(self):
-		def work(arr, que = None, index = 0):
-			sum = 0
-			for element in arr:
-				sum += element
-			if(que != None):
-				que.put(sum)
-			else:
-				return sum
 		interval = self.interval
 		parallel_library = "multiP"			
 		with warnings.catch_warnings(record=True) as w:
-			returned = execute_parallel(work, [post_add], interval, prefered=parallel_library)
+			returned = execute_parallel(single_return_work, [post_add], interval, prefered=parallel_library)
 			assert returned == np.sum(interval)
 			# Check that it was actually executed in parallel not sequential.
 			for warning in w:
@@ -74,6 +74,3 @@ class TestMultiP:
 		assert np.allclose(lc_rebinned_seq.time, lc_rebinned_parallel.time)
 		assert np.allclose(lc_rebinned_seq.counts, lc_rebinned_parallel.counts)
 
-# If Dask is uninstalled it will automatically switch to MultiProcessing and pass all Dask's tests
-class TestDask(TestMultiP):
-	pass
