@@ -23,15 +23,17 @@ class TestMultiP:
 		# self.parallel_library = "multiP"
 		
 	def test_single_return(self):
-		def work(arr, que = None, index = 0):
-			sum = 0
-			for element in arr:
-				sum += element
-			if(que != None):
-				que.put(sum)
-			else:
-				return sum
 		with warnings.catch_warnings(record=True) as w:
+			
+			def work(arr, que = None, index = 0):
+				sum = 0
+				for element in arr:
+					sum += element
+				if(que != None):
+					que.put(sum)
+				else:
+					return sum
+
 			returned = execute_parallel(work, [post_add], self.interval)
 			assert returned == np.sum(self.interval)
 			# Check that it was actually executed in parallel not sequential.
@@ -41,27 +43,27 @@ class TestMultiP:
 
 	def test_multiple_returns(self):
 
-		def work(arr, que = None, index = 0):
-			sum = 0
-			mul = 1
-			for element in arr:
-				sum += element
-				mul *= element
-
-			if(que != None):
-				que.put([sum, mul])
-			else:
-				return sum, mul
-
-		def post_mul(arr):
-			mul = 1
-			for element in arr:
-				mul *= element
-			return mul
-		
-		index = np.where(self.interval == 0 )
-		no_zeros = np.delete( self.interval, index)
 		with warnings.catch_warnings(record=True) as w:
+			def work(arr, que = None, index = 0):
+				sum = 0
+				mul = 1
+				for element in arr:
+					sum += element
+					mul *= element
+
+				if(que != None):
+					que.put([sum, mul])
+				else:
+					return sum, mul
+
+			def post_mul(arr):
+				mul = 1
+				for element in arr:
+					mul *= element
+				return mul
+			
+			index = np.where(self.interval == 0 )
+			no_zeros = np.delete( self.interval, index)
 			returned = execute_parallel(work, [post_add, post_mul], no_zeros)
 			assert returned == (np.sum(self.interval), post_mul(no_zeros))
 			# Check that it was actually executed in parallel not sequential.
@@ -73,19 +75,19 @@ class TestMultiP:
 
 	def test_multiple_returns_arrays(self):
 
-		def work(arr, que = None, index = 0):
-			a = []
-			b = []
-			for _ in arr:
-				a+=[1]
-				b+=[2]
-			if(que != None):
-				que.put( [ a, b ] )
-			else:
-				return a, b
 
 
 		with warnings.catch_warnings(record=True) as w:
+			def work(arr, que = None, index = 0):
+				a = []
+				b = []
+				for _ in arr:
+					a+=[1]
+					b+=[2]
+				if(que != None):
+					que.put( [ a, b ] )
+				else:
+					return a, b
 			returned = execute_parallel(work, [post_concat_arrays, post_concat_arrays], self.interval)
 			
 			a,b = work(self.interval)
