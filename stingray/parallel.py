@@ -233,8 +233,8 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
                     # not using jit
                     process = Process(target = (work), args = process_args)
                 
-                processes.append(process)
-                communication_channels.append(communication_que)
+                    processes.append(process)
+                    communication_channels.append(communication_que)
 
 	def recvv(que, i ):
 		while True:
