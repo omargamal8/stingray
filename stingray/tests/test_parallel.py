@@ -20,7 +20,7 @@ class TestMultiP:
 	def setup_class(self):
 		self.interval = np.arange(-10,11,1)
 		# self.parallel_library = next(global_generator)
-		self.parallel_library = "multiP"
+		# self.parallel_library = "multiP"
 		
 	def test_single_return(self):
 		def work(arr, que = None, index = 0):
@@ -32,7 +32,7 @@ class TestMultiP:
 			else:
 				return sum
 		with warnings.catch_warnings(record=True) as w:
-			returned = execute_parallel(work, [post_add], self.interval, prefered=self.parallel_library)
+			returned = execute_parallel(work, [post_add], self.interval)
 			assert returned == np.sum(self.interval)
 			# Check that it was actually executed in parallel not sequential.
 			for warning in w:
@@ -61,7 +61,7 @@ class TestMultiP:
 		
 		index = np.where(self.interval == 0 )
 		no_zeros = np.delete( self.interval, index)
-		returned = execute_parallel(work, [post_add, post_mul], no_zeros, prefered=self.parallel_library)
+		returned = execute_parallel(work, [post_add, post_mul], no_zeros)
 		with warnings.catch_warnings(record=True) as w:
 			assert returned == (np.sum(self.interval), post_mul(no_zeros))
 			# Check that it was actually executed in parallel not sequential.
@@ -86,7 +86,7 @@ class TestMultiP:
 
 
 		with warnings.catch_warnings(record=True) as w:
-			returned = execute_parallel(work, [post_concat_arrays, post_concat_arrays], self.interval, prefered=self.parallel_library)
+			returned = execute_parallel(work, [post_concat_arrays, post_concat_arrays], self.interval)
 			
 			a,b = work(self.interval)
 			
@@ -104,7 +104,7 @@ class TestMultiP:
 			return None
 
 		with warnings.catch_warnings(record=True) as w:
-			execute_parallel(work, [lambda arr: arr], 2, prefered=self.parallel_library)
+			execute_parallel(work, [lambda arr: arr], 2)
 			assert any("switching to sequential" in str(warning.message) for warning in w)
 
 	def test_exposing_exception(self):
@@ -116,7 +116,7 @@ class TestMultiP:
 
 
 		with pytest.raises(ValueError) as ex:
-			execute_parallel(work, [lambda arr: arr], self.interval, prefered=self.parallel_library)
+			execute_parallel(work, [lambda arr: arr], self.interval)
 
 
 	def test_AvCs_parallel(self):
