@@ -1,4 +1,4 @@
-from stingray.parallel import *
+from stingray.parallel import execute_parallel, post_add, post_concat_arrays
 import numpy as np
 import warnings
 from astropy.tests.helper import pytest
@@ -60,8 +60,8 @@ class TestMultiP:
 		
 		index = np.where(self.interval == 0 )
 		no_zeros = np.delete( self.interval, index)
-		returned = execute_parallel(work, [post_add, post_mul], no_zeros, prefered=self.parallel_library)
 		with warnings.catch_warnings(record=True) as w:
+			returned = execute_parallel(work, [post_add, post_mul], no_zeros, prefered=self.parallel_library)
 			assert returned == (np.sum(self.interval), post_mul(no_zeros))
 			# Check that it was actually executed in parallel not sequential.
 			for warning in w:
