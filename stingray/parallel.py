@@ -146,8 +146,8 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
 		from dask import compute, delayed
 		import dask.multiprocessing
 		import dask.threaded
-		if(kwargs.get('jit') != None and kwargs['jit'] == True):
-			from numba import jit
+		# if(kwargs.get('jit') != None and kwargs['jit'] == True):
+			# from numba import jit
 	except Exception as e: 
 		return uninstalled
 	processes_count = cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
@@ -171,10 +171,10 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
                 process_args.append( sliced_argument )
 
             if(ending_index > starting_index):
-            	if(kwargs.get('jit') == True):
+            	# if(kwargs.get('jit') == True):
             		# using jit
-            		tasks.append(delayed(jit(work))(*process_args))
-            	else:
+            		# tasks.append(delayed(jit(work))(*process_args))
+            	# else:
             		# not using jit
             		tasks.append(delayed(work)(*process_args))
 
@@ -225,11 +225,11 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
             process_args.append(communication_que)
             process_args.append(i)  # for the subprocess to know its index
             if(ending_index > starting_index):
-                if(kwargs.get('jit') == True):
+                # if(kwargs.get('jit') == True):
                     # using jit
-                    from numba import jit
-                    process = Process(target = (jit(work)), args = process_args)
-                else:
+                    # from numba import jit
+                    # process = Process(target = (jit(work)), args = process_args)
+                # else:
                     # not using jit
                     process = Process(target = (work), args = process_args)
                 
