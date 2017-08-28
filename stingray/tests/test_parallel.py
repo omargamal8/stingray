@@ -30,9 +30,11 @@ class TestMultiP:
 				que.put(sum)
 			else:
 				return sum
+	interval = self.interval
+	parallel_library = "multiP"			
 		with warnings.catch_warnings(record=True) as w:
-			returned = execute_parallel(work, [post_add], self.interval, prefered=self.parallel_library)
-			assert returned == np.sum(self.interval)
+			returned = execute_parallel(work, [post_add], interval, prefered=parallel_library)
+			assert returned == np.sum(interval)
 			# Check that it was actually executed in parallel not sequential.
 			for warning in w:
 				assert not("switching to sequential" in str(warning.message))
