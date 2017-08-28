@@ -164,5 +164,5 @@ class TestMultiP:
 		assert np.allclose(lc_rebinned_seq.counts, lc_rebinned_parallel.counts)
 
 # If Dask is uninstalled it will automatically switch to MultiProcessing and pass all Dask's tests
-class TestDask(TestMultiP):
-	pass
+# class TestDask(TestMultiP):
+# 	pass
