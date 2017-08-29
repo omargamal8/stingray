@@ -3,6 +3,14 @@ import numpy as np
 import warnings
 from astropy.tests.helper import pytest
 from stingray import AveragedCrossspectrum, Lightcurve
+def single_return_work(arr, que = None, index = 0):
+			sum = 0
+			for element in arr:
+				sum += element
+			if(que != None):
+				que.put(sum)
+			else:
+				return sum
 
 # parallel_library = None
 
@@ -23,16 +31,9 @@ class TestMultiP:
 		# self.parallel_library = "multiP"
 		
 	def test_single_return(self):
-		def work(arr, que = None, index = 0):
-			sum = 0
-			for element in arr:
-				sum += element
-			if(que != None):
-				que.put(sum)
-			else:
-				return sum
+		
 		with warnings.catch_warnings(record=True) as w:
-			returned = execute_parallel(work, [stingray.parallel.post_add], self.interval)
+			returned = execute_parallel(single_return_work, [stingray.parallel.post_add], self.interval)
 			assert returned == np.sum(self.interval)
 			# Check that it was actually executed in parallel not sequential.
 			for warning in w:
@@ -119,32 +120,32 @@ class TestMultiP:
 	# 		execute_parallel(work, [lambda arr: arr], self.interval)
 
 
-	# def test_AvCs_parallel(self):
-	# 	tstart = 0.0
-	# 	tend = 20.0
-	# 	dt = np.longdouble(0.0001)
+	def test_AvCs_parallel(self):
+		tstart = 0.0
+		tend = 20.0
+		dt = np.longdouble(0.0001)
 
-	# 	time = np.arange(tstart + 0.5*dt, tend + 0.5*dt, dt)
+		time = np.arange(tstart + 0.5*dt, tend + 0.5*dt, dt)
 
-	# 	counts1 = np.random.poisson(0.01, size=time.shape[0])
-	# 	counts2 = np.random.negative_binomial(1, 0.09, size=time.shape[0])
+		counts1 = np.random.poisson(0.01, size=time.shape[0])
+		counts2 = np.random.negative_binomial(1, 0.09, size=time.shape[0])
 
-	# 	lc1 = Lightcurve(time, counts1, gti=[[tstart, tend]], dt=dt)
-	# 	lc2 = Lightcurve(time, counts2, gti=[[tstart, tend]], dt=dt)
+		lc1 = Lightcurve(time, counts1, gti=[[tstart, tend]], dt=dt)
+		lc2 = Lightcurve(time, counts2, gti=[[tstart, tend]], dt=dt)
 
-	# 	av_cs_seq = AveragedCrossspectrum(lc1, lc2, segment_size=1, parallel=False)
-	# 	av_cs_parallel = None
-	# 	with warnings.catch_warnings(record=True) as w:
-	# 		av_cs_parallel = AveragedCrossspectrum(lc1, lc2, segment_size=1, parallel=True)
-	# 		assert not any("switching to sequential" in str(warning.message) for warning in w)
+		av_cs_seq = AveragedCrossspectrum(lc1, lc2, segment_size=1, parallel=False)
+		av_cs_parallel = None
+		with warnings.catch_warnings(record=True) as w:
+			av_cs_parallel = AveragedCrossspectrum(lc1, lc2, segment_size=1, parallel=True)
+			assert not any("switching to sequential" in str(warning.message) for warning in w)
 
-	# 	for cs_seq, cs_parallel in zip(av_cs_seq.cs_all, av_cs_parallel.cs_all):
-	# 		assert cs_seq.df == cs_parallel.df
-	# 		assert np.allclose(cs_seq.freq, cs_parallel.freq)
-	# 		assert np.allclose(cs_seq.lc1.time, cs_parallel.lc1.time)
-	# 		assert np.allclose(cs_seq.lc2.time, cs_parallel.lc2.time)
-	# 		assert np.allclose(cs_seq.lc1.counts, cs_parallel.lc1.counts)
-	# 		assert np.allclose(cs_seq.lc2.counts, cs_parallel.lc2.counts)
+		for cs_seq, cs_parallel in zip(av_cs_seq.cs_all, av_cs_parallel.cs_all):
+			assert cs_seq.df == cs_parallel.df
+			assert np.allclose(cs_seq.freq, cs_parallel.freq)
+			assert np.allclose(cs_seq.lc1.time, cs_parallel.lc1.time)
+			assert np.allclose(cs_seq.lc2.time, cs_parallel.lc2.time)
+			assert np.allclose(cs_seq.lc1.counts, cs_parallel.lc1.counts)
+			assert np.allclose(cs_seq.lc2.counts, cs_parallel.lc2.counts)
 
 	# def test_rebin_parallel(self):
 	# 	dt = 0.03125
