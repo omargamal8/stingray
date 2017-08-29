@@ -1,17 +1,37 @@
-from stingray.parallel import *
+from stingray.parallel import post_add, execute_parallel, post_concat_arrays
 import numpy as np
 import warnings
 from astropy.tests.helper import pytest
 from stingray import AveragedCrossspectrum, Lightcurve
 def single_return_work(arr, que = None, index = 0):
-			sum = 0
-			for element in arr:
-				sum += element
-			if(que != None):
-				que.put(sum)
-			else:
-				return sum
+	sum = 0
+	for element in arr:
+		sum += element
+	if(que != None):
+		que.put(sum)
+	else:
+		return sum
+def multiple_return_work(arr, que = None, index = 0):
+	sum = 0
+	mul = 1
+	for element in arr:
+		sum += element
+		mul *= element
 
+	if(que != None):
+		que.put([sum, mul])
+	else:
+		return sum, mul
+def multiple_returns_array_work(arr, que = None, index = 0):
+	a = []
+	b = []
+	for _ in arr:
+		a+=[1]
+		b+=[2]
+	if(que != None):
+		que.put( [ a, b ] )
+	else:
+		return a, b
 # parallel_library = None
 
 # def next_parallel_library_gen():
@@ -33,70 +53,51 @@ class TestMultiP:
 	def test_single_return(self):
 		
 		with warnings.catch_warnings(record=True) as w:
-			returned = execute_parallel(single_return_work, [stingray.parallel.post_add], self.interval)
+			returned = execute_parallel(single_return_work, [post_add], self.interval)
 			assert returned == np.sum(self.interval)
 			# Check that it was actually executed in parallel not sequential.
 			for warning in w:
 				assert not("switching to sequential" in str(warning.message))
 		
 
-	# def test_multiple_returns(self):
+	def test_multiple_returns(self):
 
-	# 	with warnings.catch_warnings(record=True) as w:
-	# 		def work(arr, que = None, index = 0):
-	# 			sum = 0
-	# 			mul = 1
-	# 			for element in arr:
-	# 				sum += element
-	# 				mul *= element
+		with warnings.catch_warnings(record=True) as w:
 
-	# 			if(que != None):
-	# 				que.put([sum, mul])
-	# 			else:
-	# 				return sum, mul
 
-	# 		def post_mul(arr):
-	# 			mul = 1
-	# 			for element in arr:
-	# 				mul *= element
-	# 			return mul
+			def post_mul(arr):
+				mul = 1
+				for element in arr:
+					mul *= element
+				return mul
 			
-	# 		index = np.where(self.interval == 0 )
-	# 		no_zeros = np.delete( self.interval, index)
-	# 		returned = execute_parallel(work, [post_add, post_mul], no_zeros)
-	# 		assert returned == (np.sum(self.interval), post_mul(no_zeros))
-	# 		# Check that it was actually executed in parallel not sequential.
-	# 		for warning in w:
-	# 			assert not ("switching to sequential" in str(warning.message))
+			index = np.where(self.interval == 0 )
+			no_zeros = np.delete( self.interval, index)
+			returned = execute_parallel(multiple_return_work, [post_add, post_mul], no_zeros)
+			assert returned == (np.sum(self.interval), post_mul(no_zeros))
+			# Check that it was actually executed in parallel not sequential.
+			for warning in w:
+				assert not ("switching to sequential" in str(warning.message))
 
 
 
 
-	# def test_multiple_returns_arrays(self):
+	def test_multiple_returns_arrays(self):
 
 
 
-	# 	with warnings.catch_warnings(record=True) as w:
-	# 		def work(arr, que = None, index = 0):
-	# 			a = []
-	# 			b = []
-	# 			for _ in arr:
-	# 				a+=[1]
-	# 				b+=[2]
-	# 			if(que != None):
-	# 				que.put( [ a, b ] )
-	# 			else:
-	# 				return a, b
-	# 		returned = execute_parallel(work, [post_concat_arrays, post_concat_arrays], self.interval)
+		with warnings.catch_warnings(record=True) as w:
 			
-	# 		a,b = work(self.interval)
+			returned = execute_parallel(multiple_returns_array_work, [post_concat_arrays, post_concat_arrays], self.interval)
 			
-	# 		assert np.allclose(returned[0], a)
-	# 		assert np.allclose(returned[1], b)
+			a,b = multiple_returns_array_work(self.interval)
+			
+			assert np.allclose(returned[0], a)
+			assert np.allclose(returned[1], b)
 
-	# 		# Check that it was actually executed in parallel not sequential.
-	# 		for warning in w:
-	# 			assert not ("switching to sequential" in str(warning.message))
+			# Check that it was actually executed in parallel not sequential.
+			for warning in w:
+				assert not ("switching to sequential" in str(warning.message))
 
 
 	# def test_switch_to_sequential(self):
@@ -137,7 +138,8 @@ class TestMultiP:
 		av_cs_parallel = None
 		with warnings.catch_warnings(record=True) as w:
 			av_cs_parallel = AveragedCrossspectrum(lc1, lc2, segment_size=1, parallel=True)
-			assert not any("switching to sequential" in str(warning.message) for warning in w)
+			for warning in w:
+				assert not("switching to sequential" in str(warning.message))
 
 		for cs_seq, cs_parallel in zip(av_cs_seq.cs_all, av_cs_parallel.cs_all):
 			assert cs_seq.df == cs_parallel.df
