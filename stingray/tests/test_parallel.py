@@ -156,8 +156,8 @@ class TestMultiP:
         with warnings.catch_warnings(record=True) as w:
             av_cs_parallel = AveragedCrossspectrum(lc1, lc2, segment_size=1,
                                                    parallel=True)
-            assert not any("switching to sequential" in str(warning.message)
-                           for warning in w)
+            for warning in w:
+                assert not "switching to sequential" in str(warning.message)
 
         for cs_seq, cs_parallel in zip(av_cs_seq.cs_all,
                                        av_cs_parallel.cs_all):
