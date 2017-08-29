@@ -48,7 +48,13 @@ def coherence(lc1, lc2):
 
 class Crossspectrum(object):
 
-    def __init__(self, lc1=None, lc2=None, norm='none', gti=None, parallel = False):
+    def __init__(
+            self,
+            lc1=None,
+            lc2=None,
+            norm='none',
+            gti=None,
+            parallel=False):
         """
         Make a cross spectrum from a (binned) light curve.
         You can also make an empty Crossspectrum object to populate with your
@@ -133,7 +139,7 @@ class Crossspectrum(object):
         self.lc1 = lc1
         self.lc2 = lc2
 
-        self._make_crossspectrum(lc1, lc2, parallel = parallel)
+        self._make_crossspectrum(lc1, lc2, parallel=parallel)
         # These are needed to calculate coherence
         self._make_auxil_pds(lc1, lc2)
 
@@ -142,7 +148,7 @@ class Crossspectrum(object):
             self.pds1 = Crossspectrum(lc1, lc1, norm='none')
             self.pds2 = Crossspectrum(lc2, lc2, norm='none')
 
-    def _make_crossspectrum(self, lc1, lc2, parallel = False):
+    def _make_crossspectrum(self, lc1, lc2, parallel=False):
 
         # make sure the inputs work!
         if not isinstance(lc1, Lightcurve):
@@ -183,7 +189,7 @@ class Crossspectrum(object):
 
         # If dt differs slightly, its propagated error must not be more than
         # 1/100th of the bin
-        if not np.isclose(lc1.dt, lc2.dt, rtol=0.01 * lc1.dt/lc1.tseg):
+        if not np.isclose(lc1.dt, lc2.dt, rtol=0.01 * lc1.dt / lc1.tseg):
             raise StingrayError("Light curves do not have same time binning "
                                 "dt.")
 
@@ -193,7 +199,7 @@ class Crossspectrum(object):
         self.n = lc1.n
 
         # the frequency resolution
-        self.df = 1.0/lc1.tseg
+        self.df = 1.0 / lc1.tseg
 
         # the number of averaged periodograms in the final output
         # This should *always* be 1 here
@@ -221,7 +227,7 @@ class Crossspectrum(object):
             # This is clearly a wild approximation.
             simon("Errorbars on cross spectra are not thoroughly tested. "
                   "Please report any inconsistencies.")
-            unnorm_power_err = np.sqrt(2) / np.sqrt(self.m) # Leahy-like
+            unnorm_power_err = np.sqrt(2) / np.sqrt(self.m)  # Leahy-like
             unnorm_power_err /= (2 / np.sqrt(self.nphots1 * self.nphots2))
             unnorm_power_err += np.zeros_like(self.power)
 
@@ -327,9 +333,10 @@ class Crossspectrum(object):
             if self.type == 'powerspectrum':
                 pass
             else:
-                raise AttributeError('Spectrum has no attribute named nphots2.')
+                raise AttributeError(
+                    'Spectrum has no attribute named nphots2.')
 
-        bin_cs.m = np.rint(step_size*self.m)
+        bin_cs.m = np.rint(step_size * self.m)
 
         return bin_cs
 
@@ -432,7 +439,6 @@ class Crossspectrum(object):
         new_spec.power_err = binpower_err
         new_spec.m = nsamples * self.m
 
-
         if hasattr(self, 'unnorm_power'):
             _, binpower_unnorm, _, _ = \
                 rebin_data_log(self.freq, self.unnorm_power, f, dx=self.df)
@@ -471,7 +477,8 @@ class Crossspectrum(object):
         # this computes the averaged power spectrum, but using the
         # cross spectrum code to avoid circular imports
 
-        return self.unnorm_power.real/(self.pds1.power.real * self.pds2.power.real)
+        return self.unnorm_power.real / \
+            (self.pds1.power.real * self.pds2.power.real)
 
     def _phase_lag(self):
         """Return the fourier phase lag of the cross spectrum."""
@@ -574,7 +581,13 @@ class AveragedCrossspectrum(Crossspectrum):
 
         self.segment_size = segment_size
 
-        Crossspectrum.__init__(self, lc1, lc2, norm, gti=gti, parallel = parallel)
+        Crossspectrum.__init__(
+            self,
+            lc1,
+            lc2,
+            norm,
+            gti=gti,
+            parallel=parallel)
 
         return
 
@@ -588,7 +601,7 @@ class AveragedCrossspectrum(Crossspectrum):
                                               segment_size=self.segment_size,
                                               norm='none', gti=lc2.gti)
 
-    def _make_segment_spectrum(self, lc1, lc2, segment_size, parallel = False):
+    def _make_segment_spectrum(self, lc1, lc2, segment_size, parallel=False):
 
         # TODO: need to update this for making cross spectra.
         assert isinstance(lc1, Lightcurve)
@@ -599,7 +612,7 @@ class AveragedCrossspectrum(Crossspectrum):
 
         # If dt differs slightly, its propagated error must not be more than
         # 1/100th of the bin
-        if not np.isclose(lc1.dt, lc2.dt, rtol=0.01 * lc1.dt/lc1.tseg):
+        if not np.isclose(lc1.dt, lc2.dt, rtol=0.01 * lc1.dt / lc1.tseg):
             raise ValueError("Light curves do not have same time binning dt.")
 
         # In case a small difference exists, ignore it
@@ -610,11 +623,11 @@ class AveragedCrossspectrum(Crossspectrum):
 
         check_gtis(self.gti)
         start_inds, end_inds = \
-                bin_intervals_from_gtis(self.gti, segment_size, lc1.time,
+            bin_intervals_from_gtis(self.gti, segment_size, lc1.time,
                                     dt=lc1.dt)
         _norm = self.norm
 
-        def _create_segments_spectrum(start_inds, end_inds, que=None, index = 0):
+        def _create_segments_spectrum(start_inds, end_inds, que=None, index=0):
             try:
                 cs_all = []
                 nphots1_all = []
@@ -629,12 +642,12 @@ class AveragedCrossspectrum(Crossspectrum):
                     counts_2_err = lc2.counts_err[start_ind:end_ind]
                     lc1_seg = Lightcurve(time_1, counts_1, err=counts_1_err,
                                          err_dist=lc1.err_dist,
-                                         gti=[[time_1[0] - lc1.dt/2,
+                                         gti=[[time_1[0] - lc1.dt / 2,
                                                time_1[-1] + lc1.dt / 2]],
                                          dt=lc1.dt)
                     lc2_seg = Lightcurve(time_2, counts_2, err=counts_2_err,
                                          err_dist=lc2.err_dist,
-                                         gti=[[time_2[0] - lc2.dt/2,
+                                         gti=[[time_2[0] - lc2.dt / 2,
                                                time_2[-1] + lc2.dt / 2]],
                                          dt=lc2.dt)
                     cs_seg = Crossspectrum(lc1_seg, lc2_seg, norm=_norm)
@@ -642,37 +655,38 @@ class AveragedCrossspectrum(Crossspectrum):
                     nphots1_all.append(np.sum(lc1_seg.counts))
                     nphots2_all.append(np.sum(lc2_seg.counts))
 
-                if que == None:
+                if que is None:
                     return cs_all, nphots1_all, nphots2_all
                 else:
                     que.put([cs_all, nphots1_all, nphots2_all])
             except Exception as e:
-                if(que != None):
+                if(que is not None):
                     que.put(e)
                 else:
                     raise e
 
-        if(parallel == True):
+        if(parallel):
             cs_all, nphots1_all, nphots2_all = \
-            execute_parallel(_create_segments_spectrum,
-                            [post_concat_arrays,post_concat_arrays,post_concat_arrays],
-                             start_inds, end_inds,
-                             jit = False, shared_res = False)
+                execute_parallel(_create_segments_spectrum,
+                                 [post_concat_arrays, post_concat_arrays, post_concat_arrays],
+                                 start_inds, end_inds,
+                                 jit=False, shared_res=False)
 
         else:
-            cs_all, nphots1_all, nphots2_all = _create_segments_spectrum(start_inds, end_inds)
+            cs_all, nphots1_all, nphots2_all = _create_segments_spectrum(
+                start_inds, end_inds)
 
         return cs_all, nphots1_all, nphots2_all
 
-    def _make_crossspectrum(self, lc1, lc2, parallel = False):
+    def _make_crossspectrum(self, lc1, lc2, parallel=False):
 
         # chop light curves into segments
         if isinstance(lc1, Lightcurve) and \
                 isinstance(lc2, Lightcurve):
 
             if self.type == "crossspectrum":
-                self.cs_all, nphots1_all, nphots2_all = \
-                    self._make_segment_spectrum(lc1, lc2, self.segment_size, parallel = parallel)
+                self.cs_all, nphots1_all, nphots2_all = self._make_segment_spectrum(
+                    lc1, lc2, self.segment_size, parallel=parallel)
 
             elif self.type == "powerspectrum":
                 self.cs_all, nphots1_all = \
@@ -688,9 +702,8 @@ class AveragedCrossspectrum(Crossspectrum):
             for lc1_seg, lc2_seg in zip(lc1, lc2):
 
                 if self.type == "crossspectrum":
-                    cs_sep, nphots1_sep, nphots2_sep = \
-                        self._make_segment_spectrum(lc1_seg, lc2_seg,
-                                                    self.segment_size, parallel = parallel)
+                    cs_sep, nphots1_sep, nphots2_sep = self._make_segment_spectrum(
+                        lc1_seg, lc2_seg, self.segment_size, parallel=parallel)
                     nphots2_all.append(nphots2_sep)
                 elif self.type == "powerspectrum":
                     cs_sep, nphots1_sep = \
@@ -780,7 +793,7 @@ class AveragedCrossspectrum(Crossspectrum):
 
     def time_lag(self):
         """Calculate time lag and uncertainty.
-        
+
         Formula from Bendat & Piersol 1986
         """
         lag = super(AveragedCrossspectrum, self).time_lag()

@@ -19,7 +19,6 @@ try:
 except ImportError:
     warnings.warn("Numba not installed. Faking it")
 
-
     class jit(object):
 
         def __init__(self, *args, **kwargs):
@@ -54,7 +53,7 @@ def simon(message, **kwargs):
     warnings.warn("SIMON says: {0}".format(message), **kwargs)
 
 
-def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None, parallel = False):
+def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None, parallel=False):
     """Rebin some data to an arbitrary new data resolution. Either sum
     the data points in the new bins or average them.
 
@@ -108,48 +107,49 @@ def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None, parallel = False)
 
     step_size = dx_new / dx_old
 
-    intervals = np.arange(0,y.shape[0], step_size)
+    intervals = np.arange(0, y.shape[0], step_size)
 
-    def wrapper(interval, que=None, index = 0):
+    def wrapper(interval, que=None, index=0):
         try:
             output = []
             outputerr = []
             for i in interval:
-                    total = 0
-                    totalerr = 0
+                total = 0
+                totalerr = 0
 
-                    int_i = int(i)
-                    prev_frac = int_i + 1 - i
-                    prev_bin = int_i
-                    total += prev_frac * y[prev_bin]
-                    totalerr += prev_frac * (yerr[prev_bin]**2)
+                int_i = int(i)
+                prev_frac = int_i + 1 - i
+                prev_bin = int_i
+                total += prev_frac * y[prev_bin]
+                totalerr += prev_frac * (yerr[prev_bin]**2)
 
-                    if i + step_size < len(x):
-                        # Fractional part of next bin:
-                        next_frac = i + step_size - int(i + step_size)
-                        next_bin = int(i + step_size)
-                        total += next_frac * y[next_bin]
-                        totalerr += next_frac * (yerr[next_bin]**2)
+                if i + step_size < len(x):
+                    # Fractional part of next bin:
+                    next_frac = i + step_size - int(i + step_size)
+                    next_bin = int(i + step_size)
+                    total += next_frac * y[next_bin]
+                    totalerr += next_frac * (yerr[next_bin]**2)
 
-                    total += sum(y[int(i+1):int(i+step_size)])
-                    totalerr += sum(yerr[int(i+1):int(step_size)]**2)
-                    output.append(total)
-                    outputerr.append(np.sqrt(totalerr))
-            if que == None:
+                total += sum(y[int(i + 1):int(i + step_size)])
+                totalerr += sum(yerr[int(i + 1):int(step_size)]**2)
+                output.append(total)
+                outputerr.append(np.sqrt(totalerr))
+            if que is None:
                 return output, outputerr
             else:
-                que.put([output,outputerr])
+                que.put([output, outputerr])
         except Exception as e:
-            if que != None:
+            if que is not None:
                 que.put(e)
             else:
                 raise e
-    if(parallel == True):
+    if(parallel):
         from stingray.parallel import execute_parallel, _execute_sequential, post_concat_arrays
-        output, outputerr = execute_parallel(wrapper, [post_concat_arrays, post_concat_arrays], intervals, jit = False)
+        output, outputerr = execute_parallel(
+            wrapper, [post_concat_arrays, post_concat_arrays], intervals, jit=False)
     else:
         output, outputerr = wrapper(intervals)
-           
+
     output = np.asarray(output)
     outputerr = np.asarray(outputerr)
 
@@ -351,9 +351,9 @@ def get_random_state(random_state=None):
         if is_int(random_state):
             random_state = np.random.RandomState(random_state)
         elif not isinstance(random_state, np.random.RandomState):
-            raise ValueError("{value} can't be used to generate a numpy.random.RandomState".format(
-                value=random_state
-            ))
+            raise ValueError(
+                "{value} can't be used to generate a numpy.random.RandomState".format(
+                    value=random_state))
 
     return random_state
 
@@ -374,7 +374,7 @@ def baseline_als(y, lam, p, niter=10):
         "smoothness" parameter. Larger values make the baseline stiffer
         Typically 1e2 < lam < 1e9
     p : float
-        "asymmetry" parameter. Smaller values make the baseline more 
+        "asymmetry" parameter. Smaller values make the baseline more
         "horizontal". Typically 0.001 < p < 0.1, but not necessary.
     """
     from scipy import sparse
@@ -447,14 +447,23 @@ def create_window(N, window_type='uniform'):
     if not isinstance(N, int):
         raise TypeError('N (window length) must be an integer')
 
-    WINDOWS = ['uniform', 'parzen', 'hamming', 'hanning', 'triangular', 'welch', 'blackmann', 'flat-top']
+    WINDOWS = [
+        'uniform',
+        'parzen',
+        'hamming',
+        'hanning',
+        'triangular',
+        'welch',
+        'blackmann',
+        'flat-top']
 
     if not isinstance(window_type, string_types):
         raise TypeError('type of window must be specified as string!')
 
     window_type = window_type.lower()
     if window_type not in WINDOWS:
-        raise ValueError("Wrong window type specified or window function is not available")
+        raise ValueError(
+            "Wrong window type specified or window function is not available")
 
     # Return empty array as window if N = 0
     if N == 0:
@@ -499,12 +508,13 @@ def create_window(N, window_type='uniform'):
     if window_type == 'welch':
         N_minus_1_by_2 = N_minus_1 / 2
         window = 1 - np.square((n - N_minus_1_by_2) / N_minus_1_by_2)
-        
+
     if window_type == 'blackmann':
         a0 = 0.42659
         a1 = 0.49656
         a2 = 0.076849
-        window = a0 - a1 * np.cos((2 * np.pi * n) / N_minus_1) + a2 * np.cos((4 * np.pi * n) / N_minus_1)
+        window = a0 - a1 * np.cos((2 * np.pi * n) / N_minus_1) + \
+            a2 * np.cos((4 * np.pi * n) / N_minus_1)
 
     if window_type == 'flat-top':
         a0 = 1
@@ -513,8 +523,8 @@ def create_window(N, window_type='uniform'):
         a3 = 0.388
         a4 = 0.028
         window = a0 - a1 * np.cos((2 * np.pi * n) / N_minus_1) + \
-                 a2 * np.cos((4 * np.pi * n) / N_minus_1) - \
-                 a3 * np.cos((6 * np.pi * n) / N_minus_1) + \
-                 a4 * np.cos((8 * np.pi * n) / N_minus_1)
+            a2 * np.cos((4 * np.pi * n) / N_minus_1) - \
+            a3 * np.cos((6 * np.pi * n) / N_minus_1) + \
+            a4 * np.cos((8 * np.pi * n) / N_minus_1)
 
     return window
