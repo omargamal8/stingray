@@ -2,6 +2,15 @@ from stingray.utils import simon
 import numpy as np
 from collections import OrderedDict
 
+try:
+    from pathos.helpers import mp
+    Process = mp.Process
+    cpu_count = mp.cpu_count
+    Queue = mp.Queue
+    HAS_PATHOS=True
+except (ImportError, ModuleNotFoundError):
+    from multiprocessing import Process, cpu_count, Queue
+    HAS_PATHOS=False
 
 def _initialize_prefered_library(prefered):
     """
@@ -171,7 +180,6 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
     """
 
     try:
-        from multiprocessing import cpu_count
         from dask import compute, delayed
         import dask.multiprocessing
         import dask.threaded
@@ -224,7 +232,6 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
 
 def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
     try:
-        from multiprocessing import Process, cpu_count, Queue
         from threading import Thread
     except BaseException:
         # It will never return uninstalled.
