@@ -2,6 +2,7 @@ from stingray.utils import simon
 import numpy as np
 from collections import OrderedDict
 
+
 def _initialize_prefered_library(prefered):
     """
     This is how we prioritize the order of our parallel libraries
@@ -16,9 +17,11 @@ def _initialize_prefered_library(prefered):
     if(prefered != None):
         _rearrange_prefered_library(prefered)
 
+
 def _rearrange_prefered_library(prefered):
     """
-    This is used to rearrange the order of the sequence of parallel libraries that we will try to execute with, putting the prefered
+    This is used to rearrange the order of the sequence of parallel libraries
+    that we will try to execute with, putting the prefered
     library at the beginning.
     """ 
     global prefered_parallel_libraries
@@ -34,20 +37,27 @@ def _rearrange_prefered_library(prefered):
 
     prefered_parallel_libraries = new_order
 
+
 def execute_parallel(work, list_of_operations, *args, **kwargs):
     """
     This is the starting point of executing in parallel:
     This function should be called when there are lines of code that
     should be executed in parallel.
-    These lines of code should be wrapped in a function and passed here as the "work" argument.
-    *args are the arguments that will be passed to the work function and they should consist of slicable objects.
+    These lines of code should be wrapped in a function and passed here as the
+    "work" argument.
+    *args are the arguments that will be passed to the work function and they
+    should consist of slicable objects.
 
-    What execute_parallel should do is keep calling the execute_functions found in prefered_parallel_libraries one by one
-    with the work function and its *args. If the execute_function called returns the "uninstalled" global variable, it will
-    be assumed that the intended distributed library is not installed so the execute_parallel will keep looking for an installed library.
+    What execute_parallel should do is keep calling the execute_functions
+    found in prefered_parallel_libraries one by one
+    with the work function and its *args. If the execute_function called
+    returns the "uninstalled" global variable, it will
+    be assumed that the intended distributed library is not installed so the
+    execute_parallel will keep looking for an installed library.
     If it runs out of execute functions, it will call _execute_sequential.
     
-    list_of_operations is a list containing each after processing operation to be done on each item in the returned items.
+    list_of_operations is a list containing each after processing operation to
+    be done on each item in the returned items.
 
     """
     # Initialize our order map.
@@ -55,14 +65,16 @@ def execute_parallel(work, list_of_operations, *args, **kwargs):
 
     for library_name, execute_fn in prefered_parallel_libraries.items():
         try:
-            status_or_values = execute_fn(work, list_of_operations, *args, **kwargs)
+            status_or_values = execute_fn(work, list_of_operations, *args,
+										  **kwargs)
         except Exception as e:
             error_message = ""
             if hasattr(e, 'message'):
                 error_message = (e.message)
             else:
                 error_message = (e)
-            simon("A problem occured while computing in parallel mode. ("+ str(error_message)+ ") switching to sequential..")
+            simon("A problem occured while computing in parallel mode. ("+
+				  str(error_message)+ ") switching to sequential..")
             return _execute_sequential(work,*args)
         #continue looking
         if( status_or_values is uninstalled ):
@@ -70,14 +82,16 @@ def execute_parallel(work, list_of_operations, *args, **kwargs):
         else:
             return status_or_values
 
-    simon("Did not find any distributed computing libraries installed, executing sequentially...")
+    simon("Did not find any distributed computing libraries installed, "
+		  "executing sequentially...")
     return _execute_sequential(work,*args)
 
 """
 What every _execute method should do is: try to import the intended library.
 If not installed, it should return "uninstalled" (global variable).
-If it is installed, it should import it. Slice the arguments depending on how many processes
-will be created. Run the work function and then combine their returned values and return them as a one big combined value.
+If it is installed, it should import it. Slice the arguments depending on how
+many processes will be created. Run the work function and then combine their
+returned values and return them as a one big combined value.
 
 """
 
@@ -87,9 +101,12 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
     1- Check how many cores are availble
     2- Determine each process slice size.
     3- Loop over the arguments and slice them according to each process share.
-    4- After setting the process share append the function call to the list of tasks.
-    5- When we are done filling our tasks, we should call for dask's compute and wait for the results.
-    6- The results that are returned from computing all the tasks is a collection (specifically tuple)
+    4- After setting the process share append the function call to the list of
+       tasks.
+    5- When we are done filling our tasks, we should call for dask's compute
+       and wait for the results.
+    6- The results that are returned from computing all the tasks is a
+       collection (specifically tuple)
        of the returned values by each process.
        Example:
            arr = [1,2,3,4,5,6,7,8,9,10]
@@ -107,26 +124,35 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
             _execute_dask(avg_sum, [add, avg], arr)
 
 
-        Assume that avg_sum is our work function and we would like to execute this distributedly using dask.
-        _execute_dask will be called by the following arguments: work = avg_sum, args = [arr]
+        Assume that avg_sum is our work function and we would like to execute
+        this distributedly using dask.
+        _execute_dask will be called by the following arguments: work=avg_sum,
+        args=[arr]
 
-        Assuming that the number of cores available are 2. Each process share would be equal to len(arr)/2 .. = 5.
-        We slice the arguments (arr) accordingly, process1 share = [1, .. ,5]   process2 share = [6, .. ,10] 
+        Assuming that the number of cores available are 2. Each process share
+        would be equal to len(arr)/2 .. = 5.
+        We slice the arguments (arr) accordingly, process1 share = [1, .. ,5]
+        process2 share = [6, .. ,10]
         We then compute.
         The expected returned values are ((15,3), (40,8))
-        We go ahead and create two lists of each attribute first = [15, 40] second = [3, 8]
-        We call each consequent after processing method given in list_of_operations.
+        We go ahead and create two lists of each attribute first = [15, 40]
+        second = [3, 8]
+        We call each consequent after processing method given in
+        list_of_operations.
 
         return list_of_operations[0](first), list_of_operations[1](second)
 
         that will give us the (45,5.5) we were looking for.
 
         The expected keywords are:
-        jit = True/False, Which refers wether or not to use 'numba.jit'. numba.jit should be used when the work function consists
-        of raw python code. Something like looping over arrays and calculating their sum.
+        jit = True/False, Which refers wether or not to use 'numba.jit'.
+        numba.jit should be used when the work function consists
+        of raw python code. Something like looping over arrays and calculating
+        their sum.
         Default True.
 
-        shared_res = True/False, This refers to wether or not there is an object being shared between all threads that all threads
+        shared_res = True/False, This refers to wether or not there is an
+        object being shared between all threads that all threads
         could read and write in it. Default: False.
         Example:
 
@@ -137,7 +163,8 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
             beginning_of_my_interval = intervals[0]
             my_arr.append(beginning_of_my_interval)
 
-        This work functions not only does it read the my_arr, but also each thread needs to modify it. This is when shared_res should equal to True.
+        This work functions not only does it read the my_arr, but also each
+        thread needs to modify it. This is when shared_res should equal to True.
 
     """
     
@@ -150,7 +177,8 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
             # from numba import jit
     except Exception as e: 
         return uninstalled
-    processes_count = cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
+    processes_count = \
+		cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
     tasks = []
     intervals = args[0]
     for i in range(processes_count):
@@ -159,10 +187,12 @@ def _execute_dask(work, list_of_operations, *args, **kwargs):
             starting_index = i * process_share
            
             if(i == processes_count -1):
-                #last process takes from the starting index till the end of the array
+                #last process takes from the starting index till the end of
+				# the array
                 ending_index = len(intervals)
             else:
-                ending_index = min((starting_index + process_share), len(intervals))
+                ending_index = min((starting_index + process_share),
+								   len(intervals))
 
             #slice each argument
             process_args = []
@@ -198,7 +228,8 @@ def _execute_multiprocess(work, list_of_operations, *args, **kwargs):
     except:
         # It will never return uninstalled.
         return uninstalled
-    processes_count = cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
+    processes_count = \
+		cpu_count() if kwargs.get("cpus") == None else kwargs["cpus"]
     processes = []
     intervals = args[0]
 

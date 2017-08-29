@@ -158,11 +158,16 @@ class TestMultiP:
         lc_rebinned_parallel = None
 
         with warnings.catch_warnings(record=True) as w:
-            lc_rebinned_parallel = lc1.rebin(dt+rebinning_factor, parallel = True)
-            assert not any("switching to sequential" in str(warning.message) for warning in w)
+            lc_rebinned_parallel = lc1.rebin(dt+rebinning_factor,
+                                             parallel = True)
+            for warning in w:
+                assert not "switching to sequential" in str(warning.message)
+
         assert np.allclose(lc_rebinned_seq.time, lc_rebinned_parallel.time)
         assert np.allclose(lc_rebinned_seq.counts, lc_rebinned_parallel.counts)
 
-# If Dask is uninstalled it will automatically switch to MultiProcessing and pass all Dask's tests
+
+# If Dask is uninstalled it will automatically switch to MultiProcessing and
+# pass all Dask's tests
 class TestDask(TestMultiP):
     pass
