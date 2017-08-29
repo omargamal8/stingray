@@ -8,7 +8,7 @@ try:
     cpu_count = mp.cpu_count
     Queue = mp.Queue
     HAS_PATHOS=True
-except (ImportError, ModuleNotFoundError):
+except ImportError:
     from multiprocessing import Process, cpu_count, Queue
     HAS_PATHOS=False
 
