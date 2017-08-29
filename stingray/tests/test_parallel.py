@@ -11,20 +11,20 @@ def _single_return_work(arr, que=None, index=0):
     sum = 0
     for element in arr:
         sum += element
-    if (que != None):
+    if (que is not None):
         que.put(sum)
     else:
         return sum
 
 
-def _multiple_return_work(arr, que = None, index = 0):
+def _multiple_return_work(arr, que=None, index=0):
     sum = 0
     mul = 1
     for element in arr:
         sum += element
         mul *= element
 
-    if(que != None):
+    if(que is not None):
         que.put([sum, mul])
     else:
         return sum, mul
@@ -43,19 +43,20 @@ def _multiple_return_array_work(arr, que=None, index=0):
     for _ in arr:
         a += [1]
         b += [2]
-    if (que != None):
+    if (que is not None):
         que.put([a, b])
     else:
         return a, b
 
-def _exposing_exception_work(arr, que = None, index = 0):
-    if(que != None):
+
+def _exposing_exception_work(arr, que=None, index=0):
+    if(que is not None):
         que.put(ValueError)
     else:
         raise ValueError
 
 
-def _switch_to_sequential_work(arr, que = None, index = 0):
+def _switch_to_sequential_work(arr, que=None, index=0):
     return None
 
 
@@ -64,16 +65,18 @@ def next_parallel_library_gen():
     i = 0
     while True:
         yield parallel_libraries[i]
-        i+=1
+        i += 1
         i = i % len(parallel_libraries)
+
 
 global_generator = next_parallel_library_gen()
 
+
 class TestMultiP:
     def setup_class(self):
-        self.interval = np.arange(-10,11,1)
+        self.interval = np.arange(-10, 11, 1)
         self.parallel_library = next(global_generator)
-        
+
     def test_single_return(self):
 
         with warnings.catch_warnings(record=True) as w:
@@ -84,12 +87,11 @@ class TestMultiP:
             # Check that it was actually executed in parallel not sequential.
             for warning in w:
                 assert not("switching to sequential" in str(warning.message))
-        
 
     def test_multiple_returns(self):
 
-        index = np.where(self.interval == 0 )
-        no_zeros = np.delete( self.interval, index)
+        index = np.where(self.interval == 0)
+        no_zeros = np.delete(self.interval, index)
         returned = execute_parallel(_multiple_return_work,
                                     [post_add, _multiple_return_post_mul],
                                     no_zeros, prefered=self.parallel_library)
@@ -100,7 +102,6 @@ class TestMultiP:
             for warning in w:
                 assert not ("switching to sequential" in str(warning.message))
 
-
     def test_multiple_returns_arrays(self):
 
         with warnings.catch_warnings(record=True) as w:
@@ -108,16 +109,15 @@ class TestMultiP:
                 execute_parallel(_multiple_return_array_work,
                                  [post_concat_arrays, post_concat_arrays],
                                  self.interval, prefered=self.parallel_library)
-            
-            a,b = _multiple_return_array_work(self.interval)
-            
+
+            a, b = _multiple_return_array_work(self.interval)
+
             assert np.allclose(returned[0], a)
             assert np.allclose(returned[1], b)
 
             # Check that it was actually executed in parallel not sequential.
             for warning in w:
                 assert not ("switching to sequential" in str(warning.message))
-
 
     def test_switch_to_sequential(self):
 
@@ -131,20 +131,18 @@ class TestMultiP:
                     break
             assert warning_thrown
 
-
     def test_exposing_exception(self):
 
         with pytest.raises(ValueError) as ex:
             execute_parallel(_exposing_exception_work, [lambda arr: arr],
                              self.interval, prefered=self.parallel_library)
 
-
     def test_AvCs_parallel(self):
         tstart = 0.0
         tend = 20.0
         dt = np.longdouble(0.0001)
 
-        time = np.arange(tstart + 0.5*dt, tend + 0.5*dt, dt)
+        time = np.arange(tstart + 0.5 * dt, tend + 0.5 * dt, dt)
 
         counts1 = np.random.poisson(0.01, size=time.shape[0])
         counts2 = np.random.negative_binomial(1, 0.09, size=time.shape[0])
@@ -170,24 +168,23 @@ class TestMultiP:
             assert np.allclose(cs_seq.lc1.counts, cs_parallel.lc1.counts)
             assert np.allclose(cs_seq.lc2.counts, cs_parallel.lc2.counts)
 
-
     def test_rebin_parallel(self):
         dt = 0.03125
         rebinning_factor = 0.5
-        lc_size =  (10 ** 4)
+        lc_size = (10 ** 4)
         final_element = dt * lc_size
-        times = np.arange(0,final_element,dt)
+        times = np.arange(0, final_element, dt)
         counts = np.random.rand(lc_size) * 100
         lc1 = Lightcurve(times, counts)
 
-        lc_rebinned_seq = lc1.rebin(dt+rebinning_factor, parallel = False)
+        lc_rebinned_seq = lc1.rebin(dt + rebinning_factor, parallel=False)
         lc_rebinned_parallel = None
 
         with warnings.catch_warnings(record=True) as w:
-            lc_rebinned_parallel = lc1.rebin(dt+rebinning_factor,
-                                             parallel = True)
+            lc_rebinned_parallel = lc1.rebin(dt + rebinning_factor,
+                                             parallel=True)
             for warning in w:
-                assert not "switching to sequential" in str(warning.message)
+                assert "switching to sequential" not in str(warning.message)
 
         assert np.allclose(lc_rebinned_seq.time, lc_rebinned_parallel.time)
         assert np.allclose(lc_rebinned_seq.counts, lc_rebinned_parallel.counts)
