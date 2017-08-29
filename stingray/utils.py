@@ -144,9 +144,11 @@ def rebin_data(x, y, dx_new, yerr=None, method='sum', dx=None, parallel=False):
             else:
                 raise e
     if(parallel):
-        from stingray.parallel import execute_parallel, _execute_sequential, post_concat_arrays
+        from stingray.parallel import execute_parallel, _execute_sequential
+        from stingray.parallel import post_concat_arrays
         output, outputerr = execute_parallel(
-            wrapper, [post_concat_arrays, post_concat_arrays], intervals, jit=False)
+            wrapper, [post_concat_arrays, post_concat_arrays], intervals,
+            jit=False)
     else:
         output, outputerr = wrapper(intervals)
 
@@ -318,7 +320,8 @@ def contiguous_regions(condition):
 
     Notes
     -----
-    From : http://stackoverflow.com/questions/4494404/find-large-number-of-consecutive-values-
+    From : http://stackoverflow.com/questions/4494404/
+    find-large-number-of-consecutive-values-
     fulfilling-condition-in-a-numpy-array
     """
 
@@ -352,7 +355,7 @@ def get_random_state(random_state=None):
             random_state = np.random.RandomState(random_state)
         elif not isinstance(random_state, np.random.RandomState):
             raise ValueError(
-                "{value} can't be used to generate a numpy.random.RandomState".format(
+                "{value} can't be used to generate a RandomState".format(
                     value=random_state))
 
     return random_state
@@ -430,7 +433,8 @@ def excess_variance(lc, normalization='fvar'):
 def create_window(N, window_type='uniform'):
     """ A method to create window functions commonly used in signal processing.
         Windows supported are:
-        Hamming, Hanning, uniform(rectangular window), triangular window, blackmann window among others.
+        Hamming, Hanning, uniform(rectangular window), triangular window,
+        blackmann window among others.
 
         Parameters
         ----------

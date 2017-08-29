@@ -189,6 +189,20 @@ class TestMultiP:
         assert np.allclose(lc_rebinned_seq.time, lc_rebinned_parallel.time)
         assert np.allclose(lc_rebinned_seq.counts, lc_rebinned_parallel.counts)
 
+    def test_rebin_parallel_invalid(self):
+        dt = 0.03125
+        rebinning_factor = 0.5
+        lc_size = (10 ** 4)
+        final_element = dt * lc_size
+        times = np.arange(0, final_element, dt)
+        counts = np.random.rand(lc_size) * 100
+        lc1 = Lightcurve(times, counts)
+        lc1.counts[0] = np.nan
+
+        with pytest.raises(ValueError):
+            lc_rebinned_parallel = lc1.rebin(dt + rebinning_factor,
+                                             parallel=True)
+
 
 # If Dask is uninstalled it will automatically switch to MultiProcessing and
 # pass all Dask's tests
